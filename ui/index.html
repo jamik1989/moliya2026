@@ -1,0 +1,2218 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tadbirkor Kalkulyatori va ABC-XYZ Tahlili</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* === UMUMIY STILLAR === */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+        
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        /* === NAVIGATION === */
+        .navigation {
+            display: flex;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            padding: 0;
+            border-bottom: 3px solid #2980b9;
+        }
+        
+        .nav-btn {
+            flex: 1;
+            padding: 18px 10px;
+            border: none;
+            background: none;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-btn:last-child {
+            border-right: none;
+        }
+        
+        .nav-btn.active {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: inset 0 -4px 0 #3498db;
+        }
+        
+        .nav-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* === KALKULYATOR QISMI === */
+        .tab-content {
+            display: none;
+            padding: 0;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* === KALKULYATOR HEADER === */
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        /* === KALKULYATOR TAX TABS === */
+        .tax-toggle {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin: 15px;
+            padding: 4px;
+            gap: 4px;
+        }
+        
+        .tax-tab {
+            flex: 1;
+            padding: 12px 5px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        
+        .tax-tab.active {
+            background: #3498db;
+            color: white;
+            box-shadow: 0 3px 10px rgba(52, 152, 219, 0.3);
+        }
+        
+        /* === KALKULYATOR INPUTLAR === */
+        .input-section {
+            padding: 0 15px 20px;
+        }
+        
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        
+        @media (min-width: 481px) and (max-width: 768px) {
+            .input-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .input-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 18px;
+            transition: all 0.3s;
+            border-left: 4px solid #3498db;
+        }
+        
+        .input-label {
+            display: block;
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .input-value {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            background: white;
+        }
+        
+        .input-value:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .input-preview {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #7f8c8d;
+            text-align: right;
+        }
+        
+        /* === QUICK BUTTONS === */
+        .quick-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+            padding: 0 15px;
+        }
+        
+        .quick-btn {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: #3498db;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .quick-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+        }
+        
+        /* === KALKULYATOR RESULTS === */
+        .results-section {
+            padding: 20px 15px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 15px;
+        }
+        
+        .result-title {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+        }
+        
+        .result-amount {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 15px;
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            border-radius: 8px;
+            transition: all 0.5s;
+        }
+        
+        .marja-card {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 18px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .marja-title {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .marja-value {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        /* === CASH FLOW SECTION === */
+        .section-header {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+            padding: 18px;
+            border-radius: 15px;
+            margin: 0 15px 20px;
+            text-align: center;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .section-description {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        /* === CASH FLOW INPUTS === */
+        .cashflow-inputs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 0 15px;
+        }
+        
+        @media (max-width: 480px) {
+            .cashflow-inputs {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+        
+        .cashflow-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+        
+        .cashflow-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .cashflow-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        
+        /* === GAUGE === */
+        .gauge-container {
+            width: 100%;
+            height: 150px;
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        .gauge-background {
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(90deg, #27ae60 0%, #f1c40f 50%, #e74c3c 100%);
+            border-radius: 10px;
+            position: relative;
+        }
+        
+        .gauge-pointer {
+            position: absolute;
+            top: -5px;
+            width: 16px;
+            height: 40px;
+            background: #2c3e50;
+            border-radius: 8px;
+            transition: left 0.5s ease;
+            transform: translateX(-50%);
+        }
+        
+        .gauge-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 11px;
+            color: #7f8c8d;
+        }
+        
+        .status-display {
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .status-content h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+        
+        .status-content p {
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+        
+        /* === CYCLE BREAKDOWN === */
+        .cycle-breakdown {
+            display: grid;
+            grid-template-columns: 1fr 30px 1fr 30px 1fr;
+            gap: 8px;
+            margin-top: 15px;
+            align-items: center;
+        }
+        
+        @media (max-width: 480px) {
+            .cycle-breakdown {
+                grid-template-columns: 1fr;
+            }
+            
+            .cycle-arrow {
+                transform: rotate(90deg);
+                padding: 10px;
+            }
+        }
+        
+        .cycle-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .cycle-label {
+            font-size: 11px;
+            color: #7f8c8d;
+            margin-bottom: 4px;
+        }
+        
+        .cycle-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .cycle-arrow {
+            text-align: center;
+            font-size: 18px;
+            color: #3498db;
+        }
+        
+        /* === ACTION BUTTONS === */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 15px;
+        }
+        
+        @media (max-width: 480px) {
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .action-btn {
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #2c3e50;
+            border: 2px solid #e0e0e0;
+        }
+        
+        /* === ABC-XYZ DASHBOARD STYLES === */
+        
+        /* UPLOAD SECTION */
+        .upload-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px;
+            text-align: center;
+            border: 2px dashed #667eea;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .file-info {
+            margin-top: 12px;
+            color: #666;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        
+        .success { color: #28a745; font-weight: 600; }
+        .error { color: #dc3545; font-weight: 600; }
+        
+        /* STATS ROW */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin: 20px;
+        }
+        
+        @media (max-width: 1200px) {
+            .stats-row {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 140px;
+        }
+        
+        .stat-card:nth-child(2) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .stat-card:nth-child(3) { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .stat-card:nth-child(4) { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .stat-card:nth-child(5) { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .dashboard-stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 8px 0;
+            line-height: 1;
+        }
+        
+        .dashboard-stat-label {
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .stat-subtext {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        
+        /* FILTERS CONTAINER */
+        .filters-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin: 25px 20px;
+        }
+        
+        @media (max-width: 992px) {
+            .filters-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+        
+        .filters-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #eaeaea;
+        }
+        
+        .filters-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* CATEGORY FILTERS */
+        .category-filters {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        @media (max-width: 992px) {
+            .category-filters {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .category-filters {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .category-filters {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .category-btn {
+            padding: 12px 8px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            background: white;
+            color: #666;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            border: 2px solid transparent;
+        }
+        
+        .category-btn.active {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .category-btn:hover:not(.active) {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+        
+        .category-name {
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .category-count {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+        
+        /* PERIOD FILTERS */
+        .period-filters {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .period-filters {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .period-btn {
+            padding: 15px 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            background: white;
+            color: #666;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            border: 2px solid transparent;
+        }
+        
+        .period-btn.active {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            border-color: #43e97b;
+            box-shadow: 0 5px 15px rgba(67, 233, 123, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .period-btn:hover:not(.active) {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+        
+        .period-name {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .period-icon {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+        
+        /* DATE PICKER */
+        .date-picker {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .date-input {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .date-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #555;
+            min-width: 40px;
+        }
+        
+        .date-apply-btn {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .date-apply-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* PRODUCTS TABLE */
+        .products-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid #eaeaea;
+            margin: 20px;
+        }
+        
+        .dashboard-section-title {
+            color: #2d3436;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f0f0;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            font-size: 0.9rem;
+            margin-top: 15px;
+        }
+        
+        .products-table th {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            text-align: left;
+            padding: 15px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .products-table td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .products-table tr:hover {
+            background: #f9f9ff;
+        }
+        
+        .category-badge {
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+        
+        .category-AX { background: #d4edda; color: #155724; }
+        .category-AY { background: #fff3cd; color: #856404; }
+        .category-AZ { background: #ffeaa7; color: #5d5100; }
+        .category-BX { background: #d1ecf1; color: #0c5460; }
+        .category-BY { background: #e2e3e5; color: #383d41; }
+        .category-BZ { background: #f8d7da; color: #721c24; }
+        .category-CX { background: #cce5ff; color: #004085; }
+        .category-CY { background: #d6d8db; color: #3d4348; }
+        .category-CZ { background: #f5c6cb; color: #721c24; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+        
+        .highlight {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .description {
+            font-size: 1rem;
+            color: #666;
+            line-height: 1.5;
+            margin-top: 5px;
+        }
+        
+        /* TIMESTAMP */
+        .timestamp {
+            text-align: center;
+            margin: 20px;
+            color: #666;
+            font-size: 0.85rem;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        /* LOADING */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- NAVIGATION -->
+        <div class="navigation">
+            <button class="nav-btn active" data-tab="calculator">
+                <i class="fas fa-calculator"></i> Kalkulyator
+            </button>
+            <button class="nav-btn" data-tab="abc">
+                <i class="fas fa-chart-network"></i> ABC-XYZ Tahlili
+            </button>
+
+            <!-- YANGI: Oylik tahlil -->
+            <button class="nav-btn" data-tab="monthly">
+                <i class="fas fa-chart-line"></i> Oylik tahlil
+            </button>
+        </div>
+        
+        <!-- KALKULYATOR QISMI -->
+        <div id="calculator-tab" class="tab-content active">
+            <!-- Header -->
+            <div class="header">
+                <h1>🏢 Tadbirkor Kalkulyatori</h1>
+                <div class="subtitle">Zararsizlik Nuqtasi • Kassa Xavfi</div>
+            </div>
+            
+            <!-- Tax Mode -->
+            <div class="tax-toggle">
+                <button class="tax-tab active" data-tab="1percent">1% Soliq</button>
+                <button class="tax-tab" data-tab="qqs">QQS Rejimi</button>
+            </div>
+            
+            <!-- Main Calculator -->
+            <div class="input-section">
+                <div class="input-grid">
+                    <div class="input-card">
+                        <label class="input-label">💵 Savdo (Kassa)</label>
+                        <input type="number" class="input-value" id="sales" value="1000000000">
+                        <div class="input-preview" id="salesPreview">1,000,000,000 so'm</div>
+                    </div>
+                    <div class="input-card">
+                        <label class="input-label">📦 Tovar Tannarxi</label>
+                        <input type="number" class="input-value" id="cost" value="600000000">
+                        <div class="input-preview" id="costPreview">600,000,000 so'm</div>
+                    </div>
+                    <div class="input-card">
+                        <label class="input-label">🏢 Doimiy Xarajat</label>
+                        <input type="number" class="input-value" id="fixedCost" value="50000000">
+                        <div class="input-preview" id="fixedCostPreview">50,000,000 so'm</div>
+                    </div>
+                    <div class="input-card">
+                        <label class="input-label">⚡ Sotuv harajati</label>
+                        <input type="number" class="input-value" id="operatingCost" value="30000000">
+                        <div class="input-preview" id="operatingCostPreview">30,000,000 so'm</div>
+                    </div>
+                </div>
+                
+                <!-- Quick Buttons -->
+                <div class="quick-buttons">
+                    <button class="quick-btn" onclick="quickSet('sales', 500000000)">500M</button>
+                    <button class="quick-btn" onclick="quickSet('sales', 1000000000)">1MRD</button>
+                    <button class="quick-btn" onclick="quickSet('sales', 2000000000)">2MRD</button>
+                    <button class="quick-btn" onclick="quickSet('sales', 5000000000)">5MRD</button>
+                </div>
+            </div>
+            
+            <!-- Results -->
+            <div class="results-section">
+                <div class="result-card">
+                    <div class="result-title">🎯 Zararsizlik Nuqtasi</div>
+                    <div class="result-amount" id="breakEvenAmount">223,865,708 so'm</div>
+                    
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progressBar" style="width: 50%; background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);"></div>
+                    </div>
+                    
+                    <div id="statusContainer"></div>
+                    
+                    <div class="marja-card">
+                        <div class="marja-title">📊 Foyda Marjasi</div>
+                        <div class="marja-value" id="profitMargin">25.00%</div>
+                        <div class="marja-title">Soliqdan keyingi foyda</div>
+                    </div>
+                </div>
+                
+                <!-- Target Profit -->
+                <div class="result-card">
+                    <div class="section-title" style="margin-bottom: 15px;">🎯 Maqsadli Foyda</div>
+                    <div class="input-card">
+                        <label class="input-label">💼 Xohlagan sof foyda (oyiga)</label>
+                        <input type="number" class="input-value" id="targetProfit" value="100000000">
+                        <div class="input-preview" id="targetProfitPreview">100,000,000 so'm</div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <div class="result-title">📈 Kerakli Savdo</div>
+                        <div class="result-amount" id="requiredSales">624,567,123 so'm</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cash Flow Section -->
+            <div class="section-header">
+                <div class="section-title">💰 Kassa Uzilishi Xavfi</div>
+                <div class="section-description">Pulingiz qancha vaqtda aylanadi?</div>
+            </div>
+            
+            <div class="cashflow-inputs">
+                <div class="cashflow-card">
+                    <div class="cashflow-icon">👥</div>
+                    <div class="input-label">Mijoz Qarzi</div>
+                    <input type="number" class="cashflow-input" id="customerPaymentDays" value="30" min="0" max="365">
+                    <div class="input-preview" id="customerPaymentPreview">30 kun</div>
+                </div>
+                
+                <div class="cashflow-card">
+                    <div class="cashflow-icon">📦</div>
+                    <div class="input-label">Tovar sotishi</div>
+                    <input type="number" class="cashflow-input" id="inventoryDays" value="15" min="0" max="365">
+                    <div class="input-preview" id="inventoryPreview">15 kun</div>
+                </div>
+                
+                <div class="cashflow-card">
+                    <div class="cashflow-icon">🏢</div>
+                    <div class="input-label">Taminotchi</div>
+                    <input type="number" class="cashflow-input" id="supplierPaymentDays" value="45" min="0" max="365">
+                    <div class="input-preview" id="supplierPaymentPreview">45 kun</div>
+                </div>
+            </div>
+            
+            <div class="result-card" style="margin: 0 15px 20px;">
+                <div class="result-title">🔄 Kassa Aylanish Davri</div>
+                <div class="result-amount" id="cashCycleDays">0 kun</div>
+                
+                <div class="gauge-container">
+                    <div class="gauge-background">
+                        <div class="gauge-pointer" id="gaugePointer" style="left: 50%;"></div>
+                    </div>
+                    <div class="gauge-labels">
+                        <div>✅ Ideal</div>
+                        <div>⚠️ Ehtiyot</div>
+                        <div>🚨 Xavf</div>
+                    </div>
+                </div>
+                
+                <div id="cashflowStatus"></div>
+                
+                <div class="cycle-breakdown">
+                    <div class="cycle-item">
+                        <div class="cycle-label">Mijoz qarzi</div>
+                        <div class="cycle-value" id="customerDebtDays">30 kun</div>
+                    </div>
+                    <div class="cycle-arrow">+</div>
+                    <div class="cycle-item">
+                        <div class="cycle-label">Tovar yotishi</div>
+                        <div class="cycle-value" id="inventoryValueDays">15 kun</div>
+                    </div>
+                    <div class="cycle-arrow">-</div>
+                    <div class="cycle-item">
+                        <div class="cycle-label">Yetkazib beruvchi</div>
+                        <div class="cycle-value" id="supplierPaymentValueDays">45 kun</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="action-btn btn-primary" onclick="runFullAnalysis()">
+                    <span>🔄</span> To'liq Tahlil Qilish
+                </button>
+                <button class="action-btn btn-secondary" onclick="resetCalculator()">
+                    <span>🔄</span> Yangilash
+                </button>
+            </div>
+        </div>
+        
+        <!-- ABC-XYZ DASHBOARD QISMI -->
+        <div id="abc-tab" class="tab-content">
+            <!-- Dashboard Header -->
+            <div class="header">
+                <h1><i class="fas fa-chart-network"></i> ABC-XYZ Dashboard</h1>
+                <div class="subtitle">Excel faylingizni yuklang, mahsulotlaringizning ABC-XYZ tahlili avtomatik hisoblanadi</div>
+            </div>
+            
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <button class="upload-btn" id="uploadBtn">
+                    <i class="fas fa-file-excel"></i> Excel Fayl Yuklash
+                </button>
+                <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
+                <div class="file-info" id="fileInfo">
+                    Excelda quyidagi ustunlar bo'lishi kerak: Mahsulot Nomi, Tannarx, Sotish Narxi, Sotilgan, Sana
+                </div>
+            </div>
+            
+            <!-- Main Stats Row -->
+            <div class="stats-row" id="statsRow">
+                <!-- Statistika kartalari JavaScript orqali to'ldiriladi -->
+            </div>
+            
+            <!-- Filters Container -->
+            <div class="filters-container">
+                <!-- Category Filters (Left) -->
+                <div class="filters-section">
+                    <div class="filters-title">
+                        <i class="fas fa-filter"></i> Mahsulotlar Toifasi Bo'yicha
+                    </div>
+                    <div class="category-filters" id="categoryFilters">
+                        <!-- Filter tugmalari JavaScript orqali to'ldiriladi -->
+                    </div>
+                </div>
+                
+                <!-- Period Filters (Right) -->
+                <div class="filters-section">
+                    <div class="filters-title">
+                        <i class="fas fa-calendar-alt"></i> Sana (Период) Bo'yicha
+                    </div>
+                    
+                    <div class="period-filters" id="periodFilters">
+                        <!-- Period filter tugmalari JavaScript orqali to'ldiriladi -->
+                    </div>
+                    
+                    <!-- Date Picker -->
+                    <div class="date-picker" id="datePicker" style="display: none;">
+                        <div style="display: flex; gap: 10px; width: 100%;">
+                            <div style="flex: 1;">
+                                <div class="date-label">Dan:</div>
+                                <input type="date" class="date-input" id="startDate">
+                            </div>
+                            <div style="flex: 1;">
+                                <div class="date-label">Gacha:</div>
+                                <input type="date" class="date-input" id="endDate">
+                            </div>
+                        </div>
+                        <button class="date-apply-btn" id="applyDateRange">
+                            <i class="fas fa-check"></i> Qo'llash
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Products Table -->
+            <div class="products-section">
+                <div class="dashboard-section-title">
+                    <i class="fas fa-list"></i> Mahsulotlar Jadvali
+                </div>
+                
+                <div id="productsTableContainer">
+                    <div class="empty-state" id="emptyState">
+                        <i class="fas fa-database"></i>
+                        <h3>Ma'lumotlar mavjud emas</h3>
+                        <p>Excel fayl yuklang va ABC-XYZ tahlilini ko'ring</p>
+                    </div>
+                    
+                    <div class="loading" id="loading" style="display: none;">
+                        <div class="spinner"></div>
+                        <span style="margin-left: 15px;">Ma'lumotlar tahlil qilinmoqda...</span>
+                    </div>
+                    
+                    <table class="products-table" id="productsTable" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>Mahsulot Nomi</th>
+                                <th>Tannarx</th>
+                                <th>Sotish Narxi</th>
+                                <th>Sotilgan</th>
+                                <th>Foyda</th>
+                                <th>ABC</th>
+                                <th>XYZ</th>
+                                <th>Toifa</th>
+                                <th>Sana</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Ma'lumotlar JavaScript orqali to'ldiriladi -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Timestamp -->
+            <div class="timestamp" id="timestamp">
+                <!-- Vaqt va sana JavaScript orqali to'ldiriladi -->
+            </div>
+        </div>
+
+        <!-- ==================== YANGI: OYLIK TAHLIL TAB (MENIKI) ==================== -->
+        <div id="monthly-tab" class="tab-content">
+            <div class="header">
+                <h1><i class="fas fa-chart-line"></i> Oylik Tahlil</h1>
+                <div class="subtitle">Savdo • Foyda • Xarajat • Nasiya/Qarz dinamikasi</div>
+            </div>
+
+            <div style="padding:18px 16px;">
+                <!-- KPI Cards -->
+                <div class="stats-row" style="grid-template-columns:repeat(4,1fr); margin:0;">
+                    <div class="stat-card">
+                        <div class="dashboard-stat-label">Jami Savdo (oy)</div>
+                        <div class="dashboard-stat-value" id="m_rev">125.4M</div>
+                        <div class="stat-subtext">o‘tgan oyga: <b>+8.2%</b></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="dashboard-stat-label">Jami Foyda (oy)</div>
+                        <div class="dashboard-stat-value" id="m_gp">28.9M</div>
+                        <div class="stat-subtext">marja: <b id="m_margin">23%</b></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="dashboard-stat-label">Xarajatlar (oy)</div>
+                        <div class="dashboard-stat-value" id="m_exp">19.5M</div>
+                        <div class="stat-subtext">xarajat/foyda: <b id="m_load">0.67</b></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="dashboard-stat-label">Nasiya / Qarz</div>
+                        <div class="dashboard-stat-value" id="m_debt">12.3M / 7.8M</div>
+                        <div class="stat-subtext">risk: <b id="m_risk">o‘rta</b></div>
+                    </div>
+                </div>
+
+                <div class="filters-container" style="margin:18px 0 0;">
+                    <div class="filters-section">
+                        <div class="filters-title">
+                            <i class="fas fa-chart-area"></i> Oylar bo‘yicha dinamika
+                        </div>
+
+                        <canvas id="monthlyChart" style="width:100%; height:320px;"></canvas>
+
+                        <div class="date-picker" style="display:flex; margin-top:12px;">
+                            <div style="flex:1;">
+                                <div class="date-label">1-oy</div>
+                                <select class="date-input" id="m1">
+                                    <option>2025-11</option>
+                                    <option selected>2025-12</option>
+                                    <option>2026-01</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;">
+                                <div class="date-label">2-oy</div>
+                                <select class="date-input" id="m2">
+                                    <option selected>2025-11</option>
+                                    <option>2025-12</option>
+                                    <option>2026-01</option>
+                                </select>
+                            </div>
+
+                            <button class="date-apply-btn" id="compareBtn" type="button">
+                                <i class="fas fa-balance-scale"></i> Solishtirish
+                            </button>
+                        </div>
+
+                        <div class="file-info" id="cmpInfo" style="margin-top:10px;">
+                            Ikki oy tanlang va “Solishtirish” bosing.
+                        </div>
+                    </div>
+
+                    <div class="filters-section">
+                        <div class="filters-title">
+                            <i class="fas fa-lightbulb"></i> “Nega bunday bo‘ldi?”
+                        </div>
+
+                        <ul id="insightsMonthly" style="padding-left:18px; line-height:1.6; color:#555;">
+                            <li>A toifadagi mahsulotlar savdosi pasaysa, foyda tez tushadi.</li>
+                            <li>Xarajat o‘sishi savdoga nisbatan tezlashsa, marja siqiladi.</li>
+                            <li>Nasiya oshsa, pul kassaga emas, mijozlar qarzida qoladi.</li>
+                        </ul>
+
+                        <div class="upload-section" style="margin:16px 0 0;">
+                            <button class="upload-btn" type="button" onclick="alert('Keyin: backend /upload ga bog‘laymiz')">
+                                <i class="fas fa-file-excel"></i> Oylik Excel yuklash (keyin)
+                            </button>
+                            <div class="file-info">
+                                Hozir demo. Keyin: oylik raqamlar arxivga yoziladi.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timestamp" id="monthlyTimestamp"></div>
+            </div>
+        </div>
+        <!-- ==================== /OYLIK TAHLIL ==================== -->
+
+    </div>
+
+    <!-- Chart.js (oylik grafik uchun) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <script>
+        // ==================== KALKULYATOR JAVASCRIPT ====================
+        
+        // ==================== MAIN VARIABLES ====================
+        let currentTab = '1percent';
+        
+        // ==================== NAVIGATION FUNCTIONS ====================
+        function switchTab(tabId) {
+            // Barcha tablarni yashirish
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Barcha nav tugmalaridan active klassini olib tashlash
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Tanlangan tabni ko'rsatish
+            document.getElementById(tabId + '-tab').classList.add('active');
+            
+            // Tanlangan nav tugmasini active qilish
+            document.querySelector(`.nav-btn[data-tab="${tabId}"]`).classList.add('active');
+        }
+        
+        // ==================== QUICK FUNCTIONS ====================
+        function quickSet(field, value) {
+            const input = document.getElementById(field);
+            input.value = value;
+            input.dispatchEvent(new Event('input'));
+        }
+        
+        // ==================== MAIN CALCULATOR ====================
+        function updateMainPreview(input) {
+            const value = parseFloat(input.value) || 0;
+            const previewId = input.id + 'Preview';
+            const preview = document.getElementById(previewId);
+            if (preview) {
+                preview.textContent = formatNumber(value) + ' so\'m';
+            }
+        }
+        
+        function calculateMain() {
+            const sales = parseFloat(document.getElementById('sales').value) || 0;
+            const cost = parseFloat(document.getElementById('cost').value) || 0;
+            const fixedCost = parseFloat(document.getElementById('fixedCost').value) || 0;
+            const operatingCost = parseFloat(document.getElementById('operatingCost').value) || 0;
+            
+            let breakEven, margin;
+            
+            if (currentTab === '1percent') {
+                const taxAmount = sales * 0.01;
+                const profitAfterTax = sales - cost - operatingCost - taxAmount;
+                const marginValue = profitAfterTax / sales;
+                breakEven = fixedCost / marginValue;
+                margin = marginValue * 100;
+                
+                const progressPercent = Math.min((sales / breakEven) * 100, 100);
+                document.getElementById('progressBar').style.width = `${progressPercent}%`;
+                
+                const isProfitable = sales >= breakEven;
+                const profitLossAmount = Math.abs(sales - breakEven);
+                
+                document.getElementById('statusContainer').innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 15px; background: ${isProfitable ? '#d5f4e6' : '#fdeaea'}; border-radius: 10px; margin: 15px 0;">
+                        <div style="font-size: 20px;">${isProfitable ? '💰' : '⚠️'}</div>
+                        <div>
+                            <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">${isProfitable ? 'FOYDA' : 'ZARAR'}</div>
+                            <div style="font-size: 13px; color: #7f8c8d;">${formatNumber(profitLossAmount)} so'm ${isProfitable ? 'foyda' : 'zarar'}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const salesWithoutVAT = sales / 1.12;
+                const profitBeforeTax = salesWithoutVAT - cost - operatingCost;
+                const profitAfterTax = profitBeforeTax * 0.85;
+                const marginValue = profitAfterTax / salesWithoutVAT;
+                const breakEvenWithoutVAT = fixedCost / marginValue;
+                breakEven = breakEvenWithoutVAT * 1.12;
+                margin = marginValue * 100;
+                
+                const progressPercent = Math.min((salesWithoutVAT / breakEvenWithoutVAT) * 100, 100);
+                document.getElementById('progressBar').style.width = `${progressPercent}%`;
+            }
+            
+            document.getElementById('breakEvenAmount').textContent = formatNumber(breakEven) + ' so\'m';
+            document.getElementById('profitMargin').textContent = margin.toFixed(1) + '%';
+            calculateTargetProfit();
+        }
+        
+        function calculateTargetProfit() {
+            const sales = parseFloat(document.getElementById('sales').value) || 0;
+            const cost = parseFloat(document.getElementById('cost').value) || 0;
+            const fixedCost = parseFloat(document.getElementById('fixedCost').value) || 0;
+            const operatingCost = parseFloat(document.getElementById('operatingCost').value) || 0;
+            const targetProfit = parseFloat(document.getElementById('targetProfit').value) || 0;
+            
+            let requiredSalesAmount;
+            
+            if (currentTab === '1percent') {
+                const profitAfterTax = sales - cost - operatingCost - (sales * 0.01);
+                const marginValue = profitAfterTax / sales;
+                requiredSalesAmount = (fixedCost + targetProfit) / marginValue;
+            } else {
+                const salesWithoutVAT = sales / 1.12;
+                const profitBeforeTax = salesWithoutVAT - cost - operatingCost;
+                const profitAfterTax = profitBeforeTax * 0.85;
+                const marginValue = profitAfterTax / salesWithoutVAT;
+                const targetProfitBeforeTax = targetProfit / 0.85;
+                const breakEvenWithoutVAT = (fixedCost + targetProfitBeforeTax) / marginValue;
+                requiredSalesAmount = breakEvenWithoutVAT * 1.12;
+            }
+            
+            document.getElementById('requiredSales').textContent = formatNumber(requiredSalesAmount) + ' so\'m';
+        }
+        
+        // ==================== CASH FLOW CALCULATOR ====================
+        function calculateCashCycle() {
+            const customerPaymentDays = parseFloat(document.getElementById('customerPaymentDays').value) || 0;
+            const inventoryDays = parseFloat(document.getElementById('inventoryDays').value) || 0;
+            const supplierPaymentDays = parseFloat(document.getElementById('supplierPaymentDays').value) || 0;
+            
+            const cashCycle = (inventoryDays + customerPaymentDays) - supplierPaymentDays;
+            
+            document.getElementById('customerDebtDays').textContent = customerPaymentDays + ' kun';
+            document.getElementById('inventoryValueDays').textContent = inventoryDays + ' kun';
+            document.getElementById('supplierPaymentValueDays').textContent = supplierPaymentDays + ' kun';
+            document.getElementById('cashCycleDays').textContent = cashCycle + ' kun';
+            
+            updateGaugePointer(cashCycle);
+            updateCashflowStatus(cashCycle);
+        }
+        
+        function updateGaugePointer(cashCycle) {
+            let position;
+            if (cashCycle < 0) position = 10;
+            else if (cashCycle <= 30) position = 10 + (cashCycle / 30) * 60;
+            else position = 70 + Math.min((cashCycle - 30) / 70, 0.3) * 30;
+            
+            document.getElementById('gaugePointer').style.left = position + '%';
+        }
+        
+        function updateCashflowStatus(cashCycle) {
+            let statusHTML = '';
+            if (cashCycle < 0) {
+                statusHTML = `
+                    <div class="status-display" style="border-left: 4px solid #27ae60;">
+                        <div class="status-content">
+                            <h3>✅ A'lo Holat!</h3>
+                            <p>Siz boshqalarning puli hisobiga savdo qilyapsiz. Kassa har doim to'la.</p>
+                        </div>
+                    </div>
+                `;
+            } else if (cashCycle <= 30) {
+                statusHTML = `
+                    <div class="status-display" style="border-left: 4px solid #f1c40f;">
+                        <div class="status-content">
+                            <h3>⚠️ Ehtiyot Bo'ling</h3>
+                            <p>Pul aylanishi sekin. Mablag'ingiz tovar va qarzlarda.</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                statusHTML = `
+                    <div class="status-display" style="border-left: 4px solid #e74c3c;">
+                        <div class="status-content">
+                            <h3>🚨 Kassa Uzilishi Xavfi!</h3>
+                            <p>Yetkazib beruvchiga pulni mijozdan oldin to'lab qo'yasiz.</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('cashflowStatus').innerHTML = statusHTML;
+        }
+        
+        function runFullAnalysis() {
+            const btn = document.querySelector('#calculator-tab .btn-primary');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span>⏳</span> Hisoblanmoqda...';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                // Faqat kalkulyator hisob-kitoblarini yangilash
+                calculateMain();
+                calculateCashCycle();
+                
+                btn.innerHTML = '<span>✅</span> Hisoblandi!';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 1500);
+                
+                console.log("✅ Kalkulyator hisob-kitoblari bajarildi");
+            }, 1500);
+        }
+        
+        function resetCalculator() {
+            document.getElementById('sales').value = 1000000000;
+            document.getElementById('cost').value = 600000000;
+            document.getElementById('fixedCost').value = 50000000;
+            document.getElementById('operatingCost').value = 30000000;
+            document.getElementById('targetProfit').value = 100000000;
+            
+            document.getElementById('customerPaymentDays').value = 30;
+            document.getElementById('inventoryDays').value = 15;
+            document.getElementById('supplierPaymentDays').value = 45;
+            
+            document.querySelectorAll('#calculator-tab input').forEach(input => {
+                input.dispatchEvent(new Event('input'));
+            });
+            
+            alert("🔄 Kalkulyator tozalandi!");
+        }
+        
+        // ==================== UTILITY FUNCTIONS ====================
+        function formatNumber(num) {
+            return num.toLocaleString('uz-UZ', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+        }
+        
+        // ==================== ABC-XYZ DASHBOARD JAVASCRIPT ====================
+        
+        console.log("Dashboard yuklandi. XLSX kutubxonasi:", typeof XLSX !== 'undefined');
+        
+        // O'zgaruvchilar
+        let productsDashboard = [];
+        let currentFilter = "ALL";
+        let currentPeriod = "all";
+        let dateRange = {
+            start: null,
+            end: null
+        };
+        
+        // Fayl yuklash tugmasi
+        document.getElementById('uploadBtn').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+        
+        // Fayl tanlanganda
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('fileInfo').innerHTML = 
+                `<span class="success"><i class="fas fa-check-circle"></i> ${file.name} yuklandi (${(file.size/1024).toFixed(1)} KB)</span>`;
+            
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('loading').style.display = 'flex';
+            
+            // Faylni o'qish
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    // Excel ma'lumotlarini o'qish
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    console.log("Excel ma'lumotlari oqildi:", jsonData.length, "qator");
+                    
+                    // Ma'lumotlarni qayta ishlash
+                    processDataDashboard(jsonData);
+                    
+                    document.getElementById('loading').style.display = 'none';
+                    
+                } catch (error) {
+                    console.error("Xato:", error);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('fileInfo').innerHTML = 
+                        `<span class="error"><i class="fas fa-exclamation-triangle"></i> Xato: ${error.message}</span>`;
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        });
+        
+        // Excel sanasini o'qish
+        function parseExcelDate(dateValue) {
+            if (!dateValue && dateValue !== 0) return null;
+            
+            // Agar raqam bo'lsa (Excel serial number)
+            if (typeof dateValue === 'number') {
+                const excelEpoch = new Date(1899, 11, 30);
+                const millisecondsPerDay = 24 * 60 * 60 * 1000;
+                return new Date(excelEpoch.getTime() + (dateValue - 1) * millisecondsPerDay);
+            }
+            
+            // Agar string bo'lsa
+            if (typeof dateValue === 'string') {
+                // DD.MM.YYYY formatini qo'llab-quvvatlash
+                const dotMatch = dateValue.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+                if (dotMatch) {
+                    return new Date(parseInt(dotMatch[3]), parseInt(dotMatch[2]) - 1, parseInt(dotMatch[1]));
+                }
+                
+                // YYYY-MM-DD formatini qo'llab-quvvatlash
+                const dashMatch = dateValue.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+                if (dashMatch) {
+                    return new Date(parseInt(dashMatch[1]), parseInt(dashMatch[2]) - 1, parseInt(dashMatch[3]));
+                }
+                
+                // Boshqa formatlar
+                try {
+                    return new Date(dateValue);
+                } catch (e) {
+                    return null;
+                }
+            }
+            
+            return null;
+        }
+        
+        // Sana taqqoslash
+        function isDateInRange(date, startDate, endDate) {
+            if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+                return false;
+            }
+            
+            // Sanalarni kunlar darajasida solishtirish
+            const dateTime = date.setHours(0, 0, 0, 0);
+            const startDateTime = new Date(startDate).setHours(0, 0, 0, 0);
+            const endDateTime = new Date(endDate).setHours(0, 0, 0, 0);
+            
+            return dateTime >= startDateTime && dateTime <= endDateTime;
+        }
+        
+        // Ma'lumotlarni qayta ishlash (ABC-XYZ tahlili)
+        function processDataDashboard(data) {
+            // 1. Ma'lumotlarni tayyorlash
+            productsDashboard = data.map(item => {
+                // Turli nomdagi ustunlarni qo'llab-quvvatlash
+                const productName = item["Mahsulot Nomi"] || item["Mahsulot"] || item["Nomi"] || "Noma'lum";
+                const cost = parseFloat(item.Tannarx || item.Cost || item["Narx"] || 0);
+                const price = parseFloat(item["Sotish Narxi"] || item.Price || item["Sotish"] || 0);
+                const sold = parseInt(item.Sotilgan || item.Sold || item["Miqdori"] || 0);
+                
+                // Sana ma'lumotlarini olish
+                const dateValue = item.Sana || item["Sana"] || item.Date || item["Sotish Sana"];
+                const date = parseExcelDate(dateValue);
+                
+                // Foyda hisoblash
+                const profit = (price - cost) * sold;
+                
+                return {
+                    name: productName,
+                    cost: cost,
+                    price: price,
+                    sold: sold,
+                    profit: profit,
+                    dateValue: dateValue,
+                    date: date,
+                    original: item
+                };
+            });
+            
+            console.log("Mahsulotlar soni:", productsDashboard.length);
+            
+            // 2. ABC Tahlili (Foyda ulushi bo'yicha)
+            const totalProfit = productsDashboard.reduce((sum, p) => sum + p.profit, 0);
+            
+            // Har bir mahsulotning foyda ulushini hisoblash
+            productsDashboard.forEach(p => {
+                p.profitShare = totalProfit > 0 ? (p.profit / totalProfit) * 100 : 0;
+            });
+            
+            // Foyda bo'yicha saralash
+            const sortedByProfit = [...productsDashboard].sort((a, b) => b.profit - a.profit);
+            
+            // ABC guruhlash (80-15-5 qoidasi)
+            let cumulative = 0;
+            sortedByProfit.forEach((p, i) => {
+                cumulative += p.profitShare;
+                
+                if (cumulative <= 80) {
+                    p.abc = "A"; // Yuqori daromad (80%)
+                } else if (cumulative <= 95) {
+                    p.abc = "B"; // O'rta daromad (15%)
+                } else {
+                    p.abc = "C"; // Past daromad (5%)
+                }
+            });
+            
+            // 3. XYZ Tahlili (Sotish barqarorligi)
+            // Standart og'ish hisoblash
+            const salesValues = productsDashboard.map(p => p.sold);
+            const avgSales = salesValues.reduce((a, b) => a + b, 0) / salesValues.length;
+            
+            // Variatsiya koeffitsiyenti (CV)
+            const variance = salesValues.reduce((sum, val) => sum + Math.pow(val - avgSales, 2), 0) / salesValues.length;
+            const stdDev = Math.sqrt(variance);
+            const cv = (stdDev / avgSales) * 100; // Variatsiya koeffitsiyenti
+            
+            // Har bir mahsulot uchun XYZ aniqlash
+            productsDashboard.forEach(p => {
+                // O'zgaruvchanlik darajasi
+                const deviation = Math.abs(p.sold - avgSales) / avgSales * 100;
+                
+                if (deviation < 20) {
+                    p.xyz = "X"; // Barqaror (o'zgaruvchanlik < 20%)
+                } else if (deviation < 50) {
+                    p.xyz = "Y"; // O'rtacha (20-50%)
+                } else {
+                    p.xyz = "Z"; // Beqaror (> 50%)
+                }
+                
+                // Toifani belgilash
+                p.category = p.abc + p.xyz;
+            });
+            
+            console.log("ABC-XYZ tahlili tugadi");
+            
+            // Dashboardni yangilash
+            updateDashboardABC();
+            
+            // Period filter tugmalarini sozlash
+            setupPeriodFiltersABC();
+            
+            // Vaqtni yangilash
+            updateTimestampABC();
+        }
+        
+        // Period filter tugmalarini sozlash
+        function setupPeriodFiltersABC() {
+            const periodFilters = document.getElementById('periodFilters');
+            const datePicker = document.getElementById('datePicker');
+            const applyDateRangeBtn = document.getElementById('applyDateRange');
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            
+            // Period tugmalarini yaratish
+            periodFilters.innerHTML = `
+                <button class="period-btn ${currentPeriod === 'all' ? 'active' : ''}" data-period="all">
+                    <div class="period-icon"><i class="fas fa-infinity"></i></div>
+                    <div class="period-name">Hammasi</div>
+                </button>
+                <button class="period-btn ${currentPeriod === 'month' ? 'active' : ''}" data-period="month">
+                    <div class="period-icon"><i class="fas fa-calendar-week"></i></div>
+                    <div class="period-name">Oxirgi oy</div>
+                </button>
+                <button class="period-btn ${currentPeriod === 'quarter' ? 'active' : ''}" data-period="quarter">
+                    <div class="period-icon"><i class="fas fa-calendar-alt"></i></div>
+                    <div class="period-name">Oxirgi kvartal</div>
+                </button>
+                <button class="period-btn ${currentPeriod === 'year' ? 'active' : ''}" data-period="year">
+                    <div class="period-icon"><i class="fas fa-calendar"></i></div>
+                    <div class="period-name">Oxirgi yil</div>
+                </button>
+                <button class="period-btn ${currentPeriod === 'custom' ? 'active' : ''}" data-period="custom">
+                    <div class="period-icon"><i class="fas fa-calendar-day"></i></div>
+                    <div class="period-name">Maxsus davr</div>
+                </button>
+            `;
+            
+            // Period tugmalariga hodisa qo'shish
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Faqat bittasi active bo'lishi
+                    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    currentPeriod = btn.getAttribute('data-period');
+                    
+                    // Agar "Maxsus davr" tanlansa, sana tanlashni ko'rsat
+                    if (currentPeriod === 'custom') {
+                        datePicker.style.display = 'flex';
+                        
+                        // Boshlang'ich sanalarni belgilash
+                        const today = new Date();
+                        const weekAgo = new Date();
+                        weekAgo.setDate(today.getDate() - 7);
+                        
+                        startDateInput.valueAsDate = weekAgo;
+                        endDateInput.valueAsDate = today;
+                        
+                        dateRange.start = startDateInput.value;
+                        dateRange.end = endDateInput.value;
+                    } else {
+                        datePicker.style.display = 'none';
+                        dateRange.start = null;
+                        dateRange.end = null;
+                    }
+                    
+                    updateTableABC();
+                    updateStatsABC();
+                    updateFiltersABC();
+                });
+            });
+            
+            // Sana tanlashni qo'llash
+            applyDateRangeBtn.addEventListener('click', () => {
+                dateRange.start = startDateInput.value;
+                dateRange.end = endDateInput.value;
+                
+                // Barcha period tugmalaridan active klassini olib tashlash
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                // Maxsus davr tugmasini active qilish
+                document.querySelector('.period-btn[data-period="custom"]').classList.add('active');
+                
+                currentPeriod = 'custom';
+                updateTableABC();
+                updateStatsABC();
+                updateFiltersABC();
+            });
+        }
+        
+        // Dashboardni yangilash
+        function updateDashboardABC() {
+            // 1. Statistikani yangilash
+            updateStatsABC();
+            
+            // 2. Filter tugmalarini yangilash
+            updateFiltersABC();
+            
+            // 3. Jadvalni yangilash
+            updateTableABC();
+        }
+        
+        // Statistikani yangilash
+        function updateStatsABC() {
+            const statsRow = document.getElementById('statsRow');
+            
+            // Joriy filterga mos mahsulotlar
+            const filteredProducts = getFilteredProductsABC();
+            
+            // Jami ma'lumotlar
+            const totalProducts = filteredProducts.length;
+            const totalProfit = filteredProducts.reduce((sum, p) => sum + p.profit, 0);
+            
+            // AX mahsulotlar (Oltin fond)
+            const axProducts = filteredProducts.filter(p => p.category === "AX");
+            const axProfit = axProducts.reduce((sum, p) => sum + p.profit, 0);
+            
+            // CZ mahsulotlar (O'lik yuk)
+            const czProducts = filteredProducts.filter(p => p.category === "CZ");
+            const czProfit = czProducts.reduce((sum, p) => sum + p.profit, 0);
+            
+            // A toifasi mahsulotlar (Yuqori daromadli)
+            const aProducts = filteredProducts.filter(p => p.abc === "A");
+            const aProfit = aProducts.reduce((sum, p) => sum + p.profit, 0);
+            
+            statsRow.innerHTML = `
+                <div class="stat-card">
+                    <div class="dashboard-stat-label">Jami Mahsulotlar</div>
+                    <div class="dashboard-stat-value">${totalProducts}</div>
+                    <div class="stat-subtext">ta mahsulot</div>
+                </div>
+                <div class="stat-card">
+                    <div class="dashboard-stat-label">Jami Foyda</div>
+                    <div class="dashboard-stat-value">${formatMoney(totalProfit)}</div>
+                    <div class="stat-subtext">so'm</div>
+                </div>
+                <div class="stat-card">
+                    <div class="dashboard-stat-label">Oltin Fond (AX)</div>
+                    <div class="dashboard-stat-value">${axProducts.length}</div>
+                    <div class="stat-subtext">${formatMoney(axProfit)} so'm</div>
+                </div>
+                <div class="stat-card">
+                    <div class="dashboard-stat-label">O'lik Yuk (CZ)</div>
+                    <div class="dashboard-stat-value">${czProducts.length}</div>
+                    <div class="stat-subtext">${formatMoney(czProfit)} so'm</div>
+                </div>
+                <div class="stat-card">
+                    <div class="dashboard-stat-label">Yuqori Daromadli (A)</div>
+                    <div class="dashboard-stat-value">${aProducts.length}</div>
+                    <div class="stat-subtext">${formatMoney(aProfit)} so'm</div>
+                </div>
+            `;
+        }
+        
+        // Filtrlangan mahsulotlarni olish
+        function getFilteredProductsABC() {
+            let filteredProducts = productsDashboard;
+            
+            // 1. Toifa bo'yicha filtr
+            if (currentFilter !== "ALL") {
+                filteredProducts = productsDashboard.filter(p => p.category === currentFilter);
+            }
+            
+            // 2. Period bo'yicha filtr
+            if (currentPeriod !== "all") {
+                const today = new Date();
+                let startDate, endDate = today;
+                
+                switch(currentPeriod) {
+                    case "month":
+                        startDate = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+                        break;
+                    case "quarter":
+                        startDate = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+                        break;
+                    case "year":
+                        startDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+                        break;
+                    case "custom":
+                        if (dateRange.start && dateRange.end) {
+                            startDate = new Date(dateRange.start);
+                            endDate = new Date(dateRange.end);
+                        }
+                        break;
+                }
+                
+                // Sanaga qarab filtr
+                if (startDate && endDate) {
+                    filteredProducts = filteredProducts.filter(p => {
+                        if (!p.date || !(p.date instanceof Date) || isNaN(p.date.getTime())) {
+                            return false;
+                        }
+                        return isDateInRange(p.date, startDate, endDate);
+                    });
+                }
+            }
+            
+            return filteredProducts;
+        }
+        
+        // Filter tugmalarini yangilash
+        function updateFiltersABC() {
+            const categoryFilters = document.getElementById('categoryFilters');
+            const categories = ["ALL", "AX", "AY", "AZ", "BX", "BY", "BZ", "CX", "CY", "CZ"];
+            
+            // Joriy periodga mos mahsulotlar
+            let periodFilteredProducts = getFilteredProductsByPeriodOnlyABC();
+            
+            categoryFilters.innerHTML = categories.map(cat => {
+                const count = cat === "ALL" 
+                    ? periodFilteredProducts.length 
+                    : periodFilteredProducts.filter(p => p.category === cat).length;
+                
+                return `
+                    <button class="category-btn ${currentFilter === cat ? 'active' : ''}" 
+                            data-category="${cat}">
+                        <div class="category-name">${cat === "ALL" ? "Hammasi" : cat}</div>
+                        <div class="category-count">${count} mahsulot</div>
+                    </button>
+                `;
+            }).join('');
+            
+            // Filter tugmalariga hodisa qo'shish
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentFilter = btn.getAttribute('data-category');
+                    updateFiltersABC();
+                    updateTableABC();
+                    updateStatsABC();
+                });
+            });
+        }
+        
+        // Faqat period bo'yicha filtrlangan mahsulotlar
+        function getFilteredProductsByPeriodOnlyABC() {
+            let filteredProducts = productsDashboard;
+            
+            // Period bo'yicha filtr
+            if (currentPeriod !== "all") {
+                const today = new Date();
+                let startDate, endDate = today;
+                
+                switch(currentPeriod) {
+                    case "month":
+                        startDate = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+                        break;
+                    case "quarter":
+                        startDate = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+                        break;
+                    case "year":
+                        startDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+                        break;
+                    case "custom":
+                        if (dateRange.start && dateRange.end) {
+                            startDate = new Date(dateRange.start);
+                            endDate = new Date(dateRange.end);
+                        }
+                        break;
+                }
+                
+                // Sanaga qarab filtr
+                if (startDate && endDate) {
+                    filteredProducts = filteredProducts.filter(p => {
+                        if (!p.date || !(p.date instanceof Date) || isNaN(p.date.getTime())) {
+                            return false;
+                        }
+                        return isDateInRange(p.date, startDate, endDate);
+                    });
+                }
+            }
+            
+            return filteredProducts;
+        }
+        
+        // Jadvalni yangilash
+        function updateTableABC() {
+            const table = document.getElementById('productsTable');
+            const tableBody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            
+            // Filtrlangan mahsulotlar
+            const filteredProducts = getFilteredProductsABC();
+            
+            if (filteredProducts.length === 0) {
+                table.style.display = 'none';
+                emptyState.style.display = 'block';
+                emptyState.innerHTML = `
+                    <i class="fas fa-filter"></i>
+                    <h3>Filtr natijasi</h3>
+                    <p>Tanlangan filtr bo'yicha mahsulot topilmadi</p>
+                `;
+                return;
+            }
+            
+            // Sana formatlash
+            function formatDateForDisplay(date) {
+                if (!date) return "Noma'lum";
+                return date.toLocaleDateString('uz-UZ', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+            }
+            
+            // Jadvalni to'ldirish
+            tableBody.innerHTML = filteredProducts.map(p => `
+                <tr>
+                    <td><strong>${p.name}</strong></td>
+                    <td>${formatMoney(p.cost)}</td>
+                    <td>${formatMoney(p.price)}</td>
+                    <td>${p.sold} dona</td>
+                    <td><span class="highlight">${formatMoney(p.profit)}</span></td>
+                    <td><span class="highlight">${p.abc}</span></td>
+                    <td><span class="highlight">${p.xyz}</span></td>
+                    <td><span class="category-badge category-${p.category}">${p.category}</span></td>
+                    <td>${formatDateForDisplay(p.date)}</td>
+                </tr>
+            `).join('');
+            
+            table.style.display = 'table';
+            emptyState.style.display = 'none';
+        }
+        
+        // Vaqt va sanani yangilash
+        function updateTimestampABC() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('uz-UZ', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            });
+            const dateString = now.toLocaleDateString('uz-UZ', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            
+            document.getElementById('timestamp').innerHTML = 
+                `<i class="far fa-clock"></i> Oxirgi yangilanish: ${timeString} ${dateString}`;
+        }
+        
+        // Pul formatlash funksiyasi (ABC uchun)
+        function formatMoney(amount) {
+            if (amount >= 1000000) {
+                return (amount / 1000000).toFixed(1) + 'M';
+            } else if (amount >= 1000) {
+                return (amount / 1000).toFixed(1) + 'K';
+            }
+            return new Intl.NumberFormat('uz-UZ', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+        
+        // ==================== EVENT LISTENERS ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Navigation tugmalari
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabId = btn.getAttribute('data-tab');
+                    switchTab(tabId);
+
+                    // Monthly tabga birinchi marta kirilganda chart init bo'lishi uchun
+                    if (tabId === 'monthly') {
+                        setTimeout(() => {
+                            if (!monthlyChartInstance) initMonthlyChart();
+                        }, 50);
+                    }
+                });
+            });
+            
+            // Kalkulyator uchun event listenerlar
+            // Tax tabs
+            document.querySelectorAll('.tax-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tax-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentTab = tab.dataset.tab;
+                    calculateMain();
+                });
+            });
+            
+            // Main inputs
+            document.querySelectorAll('#calculator-tab #sales, #calculator-tab #cost, #calculator-tab #fixedCost, #calculator-tab #operatingCost, #calculator-tab #targetProfit').forEach(input => {
+                input.addEventListener('input', () => {
+                    updateMainPreview(input);
+                    calculateMain();
+                });
+            });
+            
+            // Cash flow inputs
+            document.querySelectorAll('#calculator-tab #customerPaymentDays, #calculator-tab #inventoryDays, #calculator-tab #supplierPaymentDays').forEach(input => {
+                input.addEventListener('input', () => {
+                    const previewId = input.id.replace('Days', 'Preview');
+                    const value = parseFloat(input.value) || 0;
+                    document.getElementById(previewId).textContent = value + ' kun';
+                    calculateCashCycle();
+                });
+            });
+            
+            // Initial calculations for calculator
+            document.querySelectorAll('#calculator-tab input').forEach(updateMainPreview);
+            calculateMain();
+            calculateCashCycle();
+            
+            // ABC-XYZ dashboard uchun dastlabki yuklash
+            updateTimestampABC();
+
+            // Monthly (dastlab)
+            updateMonthlyTimestamp();
+            const cmpBtn = document.getElementById('compareBtn');
+            if (cmpBtn) cmpBtn.addEventListener('click', monthlyCompare);
+            
+            console.log("✅ Barcha sistemalar yuklandi!");
+        });
+
+        // ==================== YANGI: OYLIK TAHLIL (MENIKI) ====================
+        function updateMonthlyTimestamp() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const dateString = now.toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const el = document.getElementById('monthlyTimestamp');
+            if (el) el.innerHTML = `<i class="far fa-clock"></i> Oxirgi yangilanish: ${timeString} ${dateString}`;
+        }
+
+        let monthlyChartInstance = null;
+
+        function initMonthlyChart() {
+            const el = document.getElementById('monthlyChart');
+            if (!el || typeof Chart === 'undefined') return;
+
+            const labels = ["2025-09","2025-10","2025-11","2025-12","2026-01"];
+            const revenue = [88, 97, 105, 116, 125.4].map(x=>x*1_000_000);
+            const profit  = [18, 21, 24, 26, 28.9].map(x=>x*1_000_000);
+            const expense = [14, 15, 16, 18, 19.5].map(x=>x*1_000_000);
+
+            monthlyChartInstance = new Chart(el, {
+                type: "line",
+                data: {
+                    labels,
+                    datasets: [
+                        { label:"Savdo", data:revenue, tension:.35 },
+                        { label:"Foyda", data:profit, tension:.35 },
+                        { label:"Xarajat", data:expense, tension:.35 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: { mode:"index", intersect:false },
+                    plugins: {
+                        legend: { labels: { color:"#2c3e50" } },
+                        tooltip: {
+                            callbacks: {
+                                label: (c) => `${c.dataset.label}: ${Math.round(c.raw/1_000_000).toLocaleString()} mln`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color:"#7f8c8d" }, grid: { color:"rgba(0,0,0,.06)" } },
+                        y: {
+                            ticks: { color:"#7f8c8d", callback: (v)=> (v/1_000_000).toFixed(0)+"M" },
+                            grid: { color:"rgba(0,0,0,.06)" }
+                        }
+                    }
+                }
+            });
+        }
+
+        function monthlyCompare() {
+            const m1 = document.getElementById("m1")?.value;
+            const m2 = document.getElementById("m2")?.value;
+            const cmp = document.getElementById("cmpInfo");
+            const insights = document.getElementById("insightsMonthly");
+
+            if (cmp) cmp.textContent = `Solishtirish: ${m1} ↔ ${m2} (hozir demo, keyin backend hisoblaydi)`;
+
+            if (insights) {
+                insights.innerHTML = `
+                    <li><b>Foyda pasaygan bo‘lsa</b>: A toifa savdosi kamaygan yoki C ulushi oshgan bo‘lishi mumkin.</li>
+                    <li><b>Xarajat oshgan bo‘lsa</b>: xarajatlar savdoga nisbatan tezroq o‘smoqda.</li>
+                    <li><b>Nasiya oshgan bo‘lsa</b>: pul kassaga emas, mijozlar qarzida qolmoqda.</li>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard Menyu</title>
+  <link rel="stylesheet" href="./assets/css/app.css">
+  <style>
+    body{display:flex;justify-content:center;align-items:center;min-height:100vh}
+    .hub{max-width:700px;width:100%;padding:24px}
+    .hub h1{margin-bottom:12px}
+    .hub p{opacity:.85;margin-bottom:18px}
+    .hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .hub a{display:flex;gap:10px;align-items:center;justify-content:center;
+      padding:16px;border-radius:14px;text-decoration:none;font-weight:700}
+    .hub a.primary{background:#111;color:#fff}
+    .hub a.secondary{background:#f2f2f2;color:#111}
+    @media (max-width:640px){.hub-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="hub">
+    <h1>📌 Qaysi sahifani ochamiz?</h1>
+    <p>2 ta variant: siz yuborgan sahifa va meniki (yangi).</p>
+
+    <div class="hub-grid">
+      <a class="primary" href="./pages/user.html">
+        <i class="fas fa-file"></i> Siz yuborgan sahifa
+      </a>
+      <a class="secondary" href="./pages/my.html">
+        <i class="fas fa-flask"></i> Meniki
+      </a>
+    </div>
+  </div>
+
+  <!-- ikonlar uchun (xohlasangiz olib tashlasa ham bo'ladi) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
+</html>
