@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>User Dashboard</title>
+  <title>FORTEL</title>
 
   <!-- CSS -->
   <link rel="stylesheet" href="../assets/css/app.css" />
@@ -22,14 +22,27 @@
 
   <!-- ✅ BRAND CONFIG (PDF + dizayn uchun) -->
   <script>
-    // LOGO yo'li sizning papkangizga mos bo'lsin:
-    // masalan: ../assets/img/logo.png
     window.DASH_BRAND = {
       name: "SHOHASAR",
-      primary: "#D62828",     // asosiy rang (header/tablitsa)
-      accent: "#111827",      // sarlavha matn rangi
+      primary: "#D62828",
+      accent: "#111827",
       logoUrl: "../assets/img/logo.png"
     };
+
+    // ✅ Local test
+    window.API_BASE = "http://127.0.0.1:3000";
+  </script>
+
+  <!-- ✅ Auth check (session cookie) -->
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const res = await fetch(window.API_BASE + "/api/me", { credentials: "include" });
+        if (!res.ok) return window.location.replace("login.html");
+      } catch (e) {
+        return window.location.replace("login.html");
+      }
+    });
   </script>
 
   <style>
@@ -102,13 +115,32 @@
 
     <!-- TOP BAR -->
     <div class="topbar" style="display:flex;align-items:center;justify-content:space-between;padding:10px 15px;background:#fff;">
-      <div style="font-weight:700;">User Dashboard</div>
+      <div style="font-weight:700;">FORTEL</div>
 
-      <!-- MUHIM: ID bo'lishi shart -->
       <button id="logoutBtn" class="logout-btn" type="button"
         style="border:1px solid #ddd;border-radius:10px;padding:8px 12px;background:#fff;cursor:pointer;">
         <i class="fas fa-sign-out-alt"></i> Chiqish
       </button>
+    </div>
+
+    <!-- ✅ CHANGE PASSWORD PANEL (YANGI) -->
+    <div style="background:#fff;margin:12px 15px;padding:12px;border:1px solid #eee;border-radius:12px;">
+      <div style="font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+        <i class="fas fa-key"></i> Parolni o‘zgartirish
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <input id="oldPass" type="password" placeholder="Eski parol"
+          style="flex:1;min-width:200px;padding:10px;border:1px solid #ddd;border-radius:10px;" />
+        <input id="newPass" type="password" placeholder="Yangi parol (min 4)"
+          style="flex:1;min-width:200px;padding:10px;border:1px solid #ddd;border-radius:10px;" />
+        <button id="changePassBtn" type="button"
+          style="padding:10px 14px;border-radius:10px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:700;">
+          O‘zgartirish
+        </button>
+      </div>
+
+      <div id="changePassMsg" style="margin-top:10px;font-size:14px;display:none;padding:10px;border-radius:10px;"></div>
     </div>
 
     <!-- NAVIGATION -->
@@ -290,12 +322,10 @@
             <i class="fas fa-file-excel"></i> Excel Fayl Yuklash
           </button>
 
-          <!-- ✅ Shablon (ABC) -->
           <button class="upload-btn" id="abcTemplateBtn" type="button">
             <i class="fas fa-file-arrow-down"></i> Shablon Yuklash
           </button>
 
-          <!-- ✅ PDF tugma (ABC) -->
           <button class="upload-btn pdf-btn" id="abcPdfBtn" type="button">
             <i class="fas fa-file-pdf"></i> PDF Yuklab olish
           </button>
@@ -371,7 +401,6 @@
         </div>
       </div>
 
-      <!-- ✅ IZOH + MAHSULOT SONI -->
       <div class="abc-legend" id="abcLegendBox">
         <div class="abc-legend-head">
           <div class="abc-legend-title">
@@ -436,12 +465,10 @@
             <i class="fas fa-file-excel"></i> Oylik Excel Yuklash
           </button>
 
-          <!-- ✅ Shablon (MONTHLY) -->
           <button class="upload-btn" id="monthlyTemplateBtn" type="button">
             <i class="fas fa-file-arrow-down"></i> Shablon Yuklash
           </button>
 
-          <!-- ✅ PDF tugma (Monthly) -->
           <button class="upload-btn pdf-btn" id="monthlyPdfBtn" type="button">
             <i class="fas fa-file-pdf"></i> PDF Yuklab olish
           </button>
@@ -496,7 +523,6 @@
           <div class="filters-section">
             <div class="filters-title"><i class="fas fa-list"></i> Ko‘rsatkich</div>
 
-            <!-- ✅ 4 ta tugma + compare -->
             <div class="period-filters" style="grid-template-columns:repeat(4,1fr);">
               <button class="period-btn active" data-metric="compare" type="button">
                 <div class="period-icon"><i class="fas fa-sliders"></i></div>
@@ -574,9 +600,67 @@
 
   <!-- JS (tartib MUHIM) -->
   <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/utils/formatters.js" defer></script>
   <script src="../assets/js/modules/calc.js" defer></script>
   <script src="../assets/js/utils/columnMapper.js" defer></script>
   <script src="../assets/js/modules/abcxyz.js" defer></script>
   <script src="../assets/js/modules/monthly.js" defer></script>
+
+  <!-- ✅ CHANGE PASSWORD JS (YANGI) -->
+  <script>
+    const cpMsgBox = document.getElementById("changePassMsg");
+    const cpBtn = document.getElementById("changePassBtn");
+
+    function showCP(type, text) {
+      if (!cpMsgBox) return;
+      cpMsgBox.style.display = "block";
+      cpMsgBox.textContent = text;
+      cpMsgBox.style.background = (type === "ok") ? "#e8f8ef" : "#ffeaea";
+      cpMsgBox.style.color = (type === "ok") ? "#1e8449" : "#c0392b";
+    }
+
+    if (cpBtn) {
+      cpBtn.addEventListener("click", async () => {
+        const oldPassword = document.getElementById("oldPass").value;
+        const newPassword = document.getElementById("newPass").value;
+
+        if (!oldPassword || !newPassword) {
+          return showCP("err", "Eski va yangi parolni kiriting");
+        }
+        if (newPassword.length < 4) {
+          return showCP("err", "Yangi parol kamida 4 ta bo‘lsin");
+        }
+        if (oldPassword === newPassword) {
+          return showCP("err", "Yangi parol eski parol bilan bir xil bo‘lmasin");
+        }
+
+        cpBtn.disabled = true;
+        cpBtn.textContent = "Tekshirilmoqda...";
+
+        try {
+          const res = await fetch(window.API_BASE + "/api/change-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ oldPassword, newPassword })
+          });
+
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.ok) {
+            return showCP("err", data.message || "Xato");
+          }
+
+          showCP("ok", data.message || "Parol yangilandi. Logout qilib yangi parol bilan kiring.");
+          document.getElementById("oldPass").value = "";
+          document.getElementById("newPass").value = "";
+        } catch (e) {
+          showCP("err", "Serverga ulanib bo‘lmadi");
+        } finally {
+          cpBtn.disabled = false;
+          cpBtn.textContent = "O‘zgartirish";
+        }
+      });
+    }
+  </script>
 </body>
 </html>

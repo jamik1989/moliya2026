@@ -3,180 +3,106 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tizimga kirish</title>
+  <title>FORTEL</title>
 
-  <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    * { box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
-
+    * { box-sizing: border-box; font-family: system-ui; }
     body {
-      min-height: 100vh;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      min-height: 100vh; margin: 0;
+      display: flex; align-items: center; justify-content: center;
       background: linear-gradient(135deg, #6a7cff, #8e6cff);
     }
-
     .login-card {
-      width: 100%;
-      max-width: 380px;
-      background: #fff;
-      border-radius: 18px;
+      width: 100%; max-width: 380px;
+      background: #fff; border-radius: 18px;
       box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-      padding: 28px 26px 30px;
+      padding: 28px;
     }
-
     .login-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 20px;
-      font-weight: 800;
-      color: #2c3e50;
-      margin-bottom: 18px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 20px; font-weight: 800; margin-bottom: 18px;
     }
-
-    .login-title i {
-      color: #4f6ef7;
-    }
-
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    .form-label {
-      font-size: 13px;
-      font-weight: 600;
-      color: #555;
-      margin-bottom: 6px;
-      display: block;
-    }
-
+    .form-group { margin-bottom: 14px; }
     .form-input {
-      width: 100%;
-      padding: 14px 14px;
-      border-radius: 12px;
-      border: 1px solid #ddd;
-      font-size: 16px;
-      outline: none;
-      letter-spacing: 3px;
-      text-align: center;
+      width: 100%; padding: 14px;
+      border-radius: 12px; border: 1px solid #ddd;
+      font-size: 15px;
     }
-
-    .form-input:focus {
-      border-color: #4f6ef7;
-      box-shadow: 0 0 0 3px rgba(79,110,247,0.15);
-    }
-
     .login-btn {
-      width: 100%;
-      margin-top: 10px;
-      padding: 14px;
-      border-radius: 14px;
-      border: none;
-      background: #4f6ef7;
-      color: #fff;
-      font-size: 16px;
-      font-weight: 700;
+      width: 100%; padding: 14px;
+      border-radius: 14px; border: none;
+      background: #4f6ef7; color: #fff;
+      font-size: 16px; font-weight: 700;
       cursor: pointer;
-      transition: 0.2s ease;
     }
-
-    .login-btn:hover {
-      background: #3d5ae6;
-    }
-
     .login-msg {
-      margin-top: 14px;
-      font-size: 14px;
-      text-align: center;
-      display: none;
-      padding: 10px;
-      border-radius: 10px;
+      margin-top: 14px; font-size: 14px;
+      text-align: center; display: none;
+      padding: 10px; border-radius: 10px;
     }
-
-    .login-msg.error {
-      background: #ffeaea;
-      color: #c0392b;
-      display: block;
-    }
-
-    .login-msg.success {
-      background: #e8f8ef;
-      color: #1e8449;
-      display: block;
-    }
+    .login-msg.error { background: #ffeaea; color: #c0392b; display: block; }
+    .login-msg.success { background: #e8f8ef; color: #1e8449; display: block; }
   </style>
 </head>
 
 <body>
-
   <div class="login-card">
     <div class="login-title">
-      <i class="fas fa-lock"></i>
-      Tizimga kirish
+      <i class="fas fa-lock"></i> FORTEL tizimiga kirish
     </div>
 
     <div class="form-group">
-      <label class="form-label">8 xonali PIN</label>
-      <input
-        type="password"
-        id="pinInput"
-        class="form-input"
-        placeholder="● ● ● ● ● ● ● ●"
-        inputmode="numeric"
-        maxlength="8"
-      >
+      <input id="username" class="form-input" placeholder="Login">
     </div>
 
-    <button class="login-btn" id="loginBtn">
-      Kirish
-    </button>
+    <div class="form-group">
+      <input id="password" type="password" class="form-input" placeholder="Parol">
+    </div>
 
+    <button class="login-btn" id="loginBtn">Kirish</button>
     <div class="login-msg" id="loginMsg"></div>
   </div>
 
-  <script>
-    const PIN_HASH = "12345678"; // demo PIN (keyin backendga ko‘chadi)
+<script>
+const API = "http://127.0.0.1:3000";
 
-    const pinInput = document.getElementById("pinInput");
-    const loginBtn = document.getElementById("loginBtn");
-    const msg = document.getElementById("loginMsg");
+const btn = document.getElementById("loginBtn");
+const msg = document.getElementById("loginMsg");
 
-    function showMsg(type, text) {
-      msg.className = "login-msg " + type;
-      msg.textContent = text;
-    }
+function show(type, text) {
+  msg.className = "login-msg " + type;
+  msg.textContent = text;
+}
 
-    loginBtn.addEventListener("click", () => {
-      const pin = pinInput.value.trim();
+btn.onclick = async () => {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
 
-      if (!/^\d{8}$/.test(pin)) {
-        showMsg("error", "PIN 8 ta raqamdan iborat bo‘lishi kerak");
-        return;
-      }
+  if (!username || !password) {
+    show("error", "Login va parolni kiriting");
+    return;
+  }
 
-      if (pin !== PIN_HASH) {
-        showMsg("error", "PIN noto‘g‘ri");
-        return;
-      }
-
-      // demo login success
-      localStorage.setItem("auth", "1");
-      showMsg("success", "Muvaffaqiyatli kirdingiz");
-
-      setTimeout(() => {
-        window.location.href = "user.html";
-      }, 600);
+  try {
+    const res = await fetch(API + "/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ username, password })
     });
 
-    pinInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") loginBtn.click();
-    });
-  </script>
+    const data = await res.json();
+    if (!res.ok) return show("error", data.message || "Xato");
 
+    show("success", "Kirish muvaffaqiyatli");
+    setTimeout(() => location.href = "user.html", 300);
+
+  } catch {
+    show("error", "Server bilan aloqa yo‘q");
+  }
+};
+</script>
 </body>
 </html>

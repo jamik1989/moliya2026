@@ -24,20 +24,50 @@
     return Number.isFinite(n) ? n : 0;
   }
 
-  // 1 234 567 format + M (mln) / B (mlrd)
-  function formatMoney(amount) {
-    const a = safeNum(amount);
-    const abs = Math.abs(a);
+  // ==================== FORMAT (UZS) ====================
+  // Agar formatters.js ulangan bo'lsa -> window.FMT ishlaydi
+  // Ulanmagan bo'lsa ham ishlashi uchun fallback beramiz.
+  const F = (() => {
+    if (window.FMT && typeof window.FMT.formatUZS === "function") return window.FMT;
 
-    if (abs >= 1_000_000_000) return (a / 1_000_000_000).toFixed(2) + "B";
-    if (abs >= 1_000_000) return (a / 1_000_000).toFixed(2) + "M";
+    const nfFull = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
+    const nf2 = new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-    // 6-7 xonali sonlar uchun 1 234 567 ko‘rinish
-    return new Intl.NumberFormat("uz-UZ", {
-      maximumFractionDigits: 0,
-      useGrouping: true
-    }).format(a);
-  }
+    const toNum = (v) => {
+      if (v === null || v === undefined) return 0;
+      if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+      const s = String(v).replace(/[^\d.,-]/g, "").replace(/\s/g, "");
+      const normalized = s.replace(/,/g, ".");
+      const n = parseFloat(normalized);
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const formatUZS = (value) => {
+      const n = toNum(value);
+      const sign = n < 0 ? "-" : "";
+      const abs = Math.abs(n);
+      return `${sign}${nfFull.format(abs)} so'm`;
+    };
+
+    const formatUZSShort = (value) => {
+      const n = toNum(value);
+      const sign = n < 0 ? "-" : "";
+      const abs = Math.abs(n);
+
+      const billion = 1_000_000_000;
+      const million = 1_000_000;
+      const thousand = 1_000;
+
+      if (abs >= billion) return `${sign}${nf2.format(abs / billion)} mlrd so'm`;
+      if (abs >= million) return `${sign}${nf2.format(abs / million)} mln so'm`;
+      if (abs >= thousand) return `${sign}${nf2.format(abs / thousand)} ming so'm`;
+      return `${sign}${nfFull.format(abs)} so'm`;
+    };
+
+    const formatNum = (value) => nfFull.format(toNum(value));
+
+    return { toNum, formatUZS, formatUZSShort, formatNum, formatPct: (v) => `${nf2.format(toNum(v))}%` };
+  })();
 
   function formatDateForDisplay(date) {
     if (!date || !(date instanceof Date) || isNaN(date.getTime())) return "Noma'lum";
@@ -165,7 +195,6 @@
     currentPeriod = "all";
     dateRange = { start: null, end: null };
 
-    // UI tozalash
     const table = $("productsTable");
     const tableBody = $("tableBody");
     const emptyState = $("emptyState");
@@ -278,32 +307,32 @@
     statsRow.innerHTML = `
       <div class="stat-card">
         <div class="dashboard-stat-label">Jami Mahsulotlar</div>
-        <div class="dashboard-stat-value">${totalProducts}</div>
+        <div class="dashboard-stat-value">${F.formatNum(totalProducts)}</div>
         <div class="stat-subtext">ta mahsulot</div>
       </div>
 
       <div class="stat-card">
         <div class="dashboard-stat-label">Jami Foyda</div>
-        <div class="dashboard-stat-value">${formatMoney(totalProfit)}</div>
-        <div class="stat-subtext">so'm</div>
+        <div class="dashboard-stat-value">${F.formatUZSShort(totalProfit)}</div>
+        <div class="stat-subtext">${F.formatUZS(totalProfit)}</div>
       </div>
 
       <div class="stat-card">
         <div class="dashboard-stat-label">Oltin Fond (AX)</div>
-        <div class="dashboard-stat-value">${axProducts.length}</div>
-        <div class="stat-subtext">${formatMoney(axProfit)} so'm</div>
+        <div class="dashboard-stat-value">${F.formatNum(axProducts.length)}</div>
+        <div class="stat-subtext">${F.formatUZSShort(axProfit)}</div>
       </div>
 
       <div class="stat-card">
         <div class="dashboard-stat-label">O'lik Yuk (CZ)</div>
-        <div class="dashboard-stat-value">${czProducts.length}</div>
-        <div class="stat-subtext">${formatMoney(czProfit)} so'm</div>
+        <div class="dashboard-stat-value">${F.formatNum(czProducts.length)}</div>
+        <div class="stat-subtext">${F.formatUZSShort(czProfit)}</div>
       </div>
 
       <div class="stat-card">
         <div class="dashboard-stat-label">Yuqori Daromadli (A)</div>
-        <div class="dashboard-stat-value">${aProducts.length}</div>
-        <div class="stat-subtext">${formatMoney(aProfit)} so'm</div>
+        <div class="dashboard-stat-value">${F.formatNum(aProducts.length)}</div>
+        <div class="stat-subtext">${F.formatUZSShort(aProfit)}</div>
       </div>
     `;
   }
@@ -323,7 +352,7 @@
       return `
         <button class="category-btn ${currentFilter === cat ? "active" : ""}" data-category="${cat}">
           <div class="category-name">${cat === "ALL" ? "Hammasi" : cat}</div>
-          <div class="category-count">${count} mahsulot</div>
+          <div class="category-count">${F.formatNum(count)} mahsulot</div>
         </button>
       `;
     }).join("");
@@ -367,10 +396,10 @@
     tableBody.innerHTML = filteredProducts.map(p => `
       <tr>
         <td><strong>${String(p.name)}</strong></td>
-        <td>${formatMoney(p.cost)}</td>
-        <td>${formatMoney(p.price)}</td>
-        <td>${safeInt(p.sold)} dona</td>
-        <td><span class="highlight">${formatMoney(p.profit)}</span></td>
+        <td>${F.formatUZS(p.cost)}</td>
+        <td>${F.formatUZS(p.price)}</td>
+        <td>${F.formatNum(safeInt(p.sold))} dona</td>
+        <td><span class="highlight">${F.formatUZS(p.profit)}</span></td>
         <td><span class="highlight">${p.abc}</span></td>
         <td><span class="highlight">${p.xyz}</span></td>
         <td><span class="category-badge category-${p.category}">${p.category}</span></td>
@@ -564,7 +593,6 @@
 
     const ws = XLSX.utils.json_to_sheet(sample, { header: ["Mahsulot Nomi", "Tannarx", "Sotish Narxi", "Sotilgan", "Sana"] });
 
-    // Ustun kengligi (chiroyli)
     ws["!cols"] = [
       { wch: 28 },
       { wch: 12 },
@@ -590,7 +618,7 @@
     if (!uploadBtn || !fileInput) return;
 
     uploadBtn.addEventListener("click", () => {
-      fileInput.value = ""; // ✅ MUHIM: bir xil nomli fayl qayta yuklansa ham change ishlaydi
+      fileInput.value = "";
       fileInput.click();
     });
 
@@ -598,7 +626,6 @@
       const file = event.target.files && event.target.files[0];
       if (!file) return;
 
-      // ✅ eng muhim: yangi fayl bo‘lsa eski natijani tozalaymiz
       hardResetABCState();
 
       if (fileInfo) {
@@ -626,7 +653,7 @@
             fileInfo.innerHTML = `<span class="error"><i class="fas fa-exclamation-triangle"></i> Xato: ${error.message}</span>`;
           }
         } finally {
-          event.target.value = ""; // ✅ MUHIM: keyingi yuklash uchun
+          event.target.value = "";
         }
       };
       reader.readAsArrayBuffer(file);

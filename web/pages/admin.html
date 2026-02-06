@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin - Parol Reset</title>
+  <style>
+    body { font-family: system-ui; background:#f5f7ff; margin:0; display:flex; justify-content:center; padding:40px; }
+    .card { width:420px; background:#fff; border-radius:16px; padding:22px; box-shadow:0 15px 40px rgba(0,0,0,.08); }
+    h2 { margin:0 0 14px; }
+    input { width:100%; padding:12px; border:1px solid #ddd; border-radius:12px; margin:8px 0; font-size:15px; }
+    button { width:100%; padding:12px; border:none; border-radius:12px; background:#4f6ef7; color:#fff; font-weight:700; cursor:pointer; }
+    .msg { margin-top:12px; padding:10px; border-radius:10px; display:none; }
+    .ok { background:#e8f8ef; color:#1e8449; display:block; }
+    .err { background:#ffeaea; color:#c0392b; display:block; }
+    small { color:#666; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>🔐 Admin: Parol reset</h2>
+    <small>Faqat admin biladigan kalit bilan ishlaydi.</small>
+
+    <input id="adminKey" placeholder="Admin key (x-admin-key)" value="admin_reset_key_123" />
+    <input id="username" placeholder="Username (masalan: ali)" />
+    <input id="newPassword" placeholder="Yangi parol (kamida 4 ta)" />
+
+    <button id="btn">Reset qilish</button>
+    <div id="msg" class="msg"></div>
+  </div>
+
+  <script>
+    const API = "http://127.0.0.1:3000";
+    const msg = document.getElementById("msg");
+
+    function show(type, text){
+      msg.className = "msg " + type;
+      msg.textContent = text;
+    }
+
+    document.getElementById("btn").onclick = async () => {
+      const adminKey = document.getElementById("adminKey").value.trim();
+      const username = document.getElementById("username").value.trim();
+      const newPassword = document.getElementById("newPassword").value.trim();
+
+      if (!adminKey || !username || !newPassword) return show("err", "Hamma maydonlarni to‘ldiring");
+      if (newPassword.length < 4) return show("err", "Parol kamida 4 ta bo‘lsin");
+
+      try{
+        const res = await fetch(API + "/api/admin/reset-password", {
+          method: "POST",
+          headers: {
+            "Content-Type":"application/json",
+            "x-admin-key": adminKey
+          },
+          body: JSON.stringify({ username, newPassword })
+        });
+        const data = await res.json().catch(()=> ({}));
+        if (!res.ok || !data.ok) return show("err", data.message || "Xato");
+        show("ok", "✅ Parol yangilandi: " + username);
+      }catch(e){
+        show("err", "Serverga ulanib bo‘lmadi");
+      }
+    };
+  </script>
+</body>
+</html>

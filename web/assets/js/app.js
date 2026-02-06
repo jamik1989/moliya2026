@@ -5,18 +5,6 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  // ✅ Sizda login/user ikkalasi ham: web/pages/
-  // user.html ichidan login.html ga qaytish yo'li: ./login.html
-  function loginUrlWithLogoutFlag() {
-    return new URL("./login.html?logout=1", window.location.href).toString();
-  }
-
-  function goLogin() {
-    const url = loginUrlWithLogoutFlag();
-    console.log("➡️ Redirect to:", url);
-    window.location.assign(url);
-  }
-
   // ===== Tabs =====
   function switchTab(tabName) {
     $$(".nav-btn").forEach(btn => {
@@ -59,17 +47,37 @@
   }
 
   function clearAuth() {
-    // ✅ Sizning login.html token kalitlari:
+    // eski local tokenlar bo‘lsa ham tozalaymiz
     localStorage.removeItem("abc_auth_token");
     localStorage.removeItem("abc_auth_user");
     sessionStorage.removeItem("abc_auth_token");
     sessionStorage.removeItem("abc_auth_user");
 
-    // ✅ Siz oldin ishlatgan kalitlar ham bo'lsa tozalab qo'yamiz (zarar qilmaydi)
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_key");
     localStorage.removeItem("user");
-    sessionStorage.clear();
+
+    // ehtiyot uchun
+    // sessionStorage.clear(); // xohlasangiz oching
+  }
+
+  function goLogin() {
+    // user.html va login.html bitta papkada: web/pages/
+    window.location.replace("login.html");
+  }
+
+  async function callBackendLogout() {
+    const base = window.API_BASE;
+    if (!base) return;
+
+    try {
+      await fetch(base + "/api/logout", {
+        method: "POST",
+        credentials: "include"
+      });
+    } catch (e) {
+      // offline bo‘lsa ham baribir login’ga ketaveramiz
+    }
   }
 
   function bindLogout() {
@@ -79,19 +87,18 @@
       return;
     }
 
-    const handler = (e) => {
+    const handler = async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log("✅ Logout click!");
 
+      await callBackendLogout(); // ✅ session’ni serverda ham yopamiz
       clearAuth();
       goLogin();
     };
 
-    // direct
     btn.addEventListener("click", handler);
 
-    // delegation (capture)
+    // delegation
     document.addEventListener("click", (e) => {
       const t = e.target;
       if (!t) return;
@@ -99,12 +106,9 @@
       const maybeBtn = t.closest && t.closest("#logoutBtn, .logout-btn, [data-action='logout']");
       if (maybeBtn) handler(e);
     }, true);
-
-    console.log("✅ Logout bind OK");
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    console.log("✅ app.js loaded:", window.location.href);
     bindTabs();
     bindLogout();
   });

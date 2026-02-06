@@ -1,11 +1,17 @@
 /* =========================================================================
 monthly.js — Oylik tahlil (Savdo / Foyda / Xarajat / Nasiya / Qarz)
+
+PUL FORMAT FIX:
+  - K/M/B harflari yo'q
+  - 1 234 567 so'm (to'liq)
+  - 1.25 mln so'm / 1.25 mlrd so'm (qisqa)
+  - Chart y-ticks ham pul formatda
+
 FIX: Yangi Excel yuklanganda eski state/filter qolib ketmasin -> HARD RESET.
 Grafik: compare = Savdo+Foyda+Cashflow bitta grafikda.
 ADD:
   - Excel shablon generator (monthlyTemplateBtn bo'lsa ishlaydi)
   - Brendli PDF (logo + ranglar) window.DASH_BRAND orqali
-  - Pul format: 1 234 567 (6-7 xonali), M -> mln, B -> mlrd, K -> ming
 ========================================================================= */
 (() => {
   "use strict";
@@ -13,36 +19,71 @@ ADD:
   const STORAGE_KEY = "monthly_state_v1";
 
   // ===== Brand config (PDF uchun) =====
-  // user.html da xohlasangiz shuni berib qo'ying:
-  // window.DASH_BRAND = { name:"Shohasar", primary:"#D62828", accent:"#111827", logoUrl:"../assets/img/logo.png" }
   const BRAND = (() => {
     const b = (window.DASH_BRAND && typeof window.DASH_BRAND === "object") ? window.DASH_BRAND : {};
     return {
       name: b.name || "Hisobot",
       primary: b.primary || "#1f2937",
       accent: b.accent || "#111827",
-      logoUrl: b.logoUrl || "", // bo'sh bo'lsa logo chiqmaydi
+      logoUrl: b.logoUrl || "",
     };
   })();
 
   // ---------- Helpers ----------
   const $ = (id) => document.getElementById(id);
 
-  function toNumber(v) {
-    if (v === null || v === undefined) return 0;
-    if (typeof v === "number") return isFinite(v) ? v : 0;
+  // ✅ Common Money Formatter (window.FMT bo'lsa ishlatadi, bo'lmasa fallback)
+  const F = (() => {
+    if (window.FMT && typeof window.FMT.formatUZS === "function") return window.FMT;
 
-    let s = String(v).trim();
-    if (!s) return 0;
+    const nfFull = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
+    const nf2 = new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-    s = s.replace(/\s+/g, "");
-    if (s.includes(",") && s.includes(".")) s = s.replace(/,/g, "");
-    else if (s.includes(",") && !s.includes(".")) s = s.replace(",", ".");
-    s = s.replace(/[^\d.-]/g, "");
+    const toNum = (v) => {
+      if (v === null || v === undefined) return 0;
+      if (typeof v === "number") return Number.isFinite(v) ? v : 0;
 
-    const n = parseFloat(s);
-    return isFinite(n) ? n : 0;
-  }
+      let s = String(v).trim();
+      if (!s) return 0;
+
+      s = s.replace(/\s+/g, "");
+      // 1,234.56 -> 1234.56, 1 234,56 -> 1234.56
+      if (s.includes(",") && s.includes(".")) s = s.replace(/,/g, "");
+      else if (s.includes(",") && !s.includes(".")) s = s.replace(",", ".");
+      s = s.replace(/[^\d.-]/g, "");
+
+      const n = parseFloat(s);
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const formatUZS = (value) => {
+      const n = toNum(value);
+      const sign = n < 0 ? "-" : "";
+      const abs = Math.abs(n);
+      return `${sign}${nfFull.format(abs)} so'm`;
+    };
+
+    const formatUZSShort = (value) => {
+      const n = toNum(value);
+      const sign = n < 0 ? "-" : "";
+      const abs = Math.abs(n);
+
+      const billion = 1_000_000_000;
+      const million = 1_000_000;
+      const thousand = 1_000;
+
+      if (abs >= billion) return `${sign}${nf2.format(abs / billion)} mlrd so'm`;
+      if (abs >= million) return `${sign}${nf2.format(abs / million)} mln so'm`;
+      if (abs >= thousand) return `${sign}${nf2.format(abs / thousand)} ming so'm`;
+      return `${sign}${nfFull.format(abs)} so'm`;
+    };
+
+    const formatNum = (value) => nfFull.format(toNum(value));
+
+    return { toNum, formatUZS, formatUZSShort, formatNum, formatPct: (v) => `${nf2.format(toNum(v))}%` };
+  })();
+
+  function toNumber(v) { return F.toNum(v); }
 
   function parseExcelDate(val) {
     if (val === null || val === undefined || val === "") return null;
@@ -81,41 +122,6 @@ ADD:
     const y = dateObj.getFullYear();
     const m = String(dateObj.getMonth() + 1).padStart(2, "0");
     return `${y}-${m}`;
-  }
-
-  // 6–7 xonali pul format: "1 234 567"
-  function formatMoneyFullUZS(n) {
-    const nn = Number(n) || 0;
-    const sign = nn < 0 ? "-" : "";
-    const abs = Math.abs(nn);
-    const s = new Intl.NumberFormat("uz-UZ", {
-      maximumFractionDigits: 0,
-      useGrouping: true,
-    }).format(abs);
-    // uz-UZ ko'pincha bo'sh joy bilan guruhlaydi; baribir xavfsiz:
-    const normalized = String(s).replace(/,/g, " ");
-    return sign + normalized;
-  }
-
-  // qisqa: ming/mln/mlrd (M -> mln)
-  function formatMoneyShortUZS(n) {
-    const nn = Number(n) || 0;
-    const sign = nn < 0 ? "-" : "";
-    const abs = Math.abs(nn);
-
-    if (abs >= 1_000_000_000) return sign + (abs / 1_000_000_000).toFixed(2) + " mlrd";
-    if (abs >= 1_000_000) return sign + (abs / 1_000_000).toFixed(2) + " mln";
-    if (abs >= 1_000) return sign + (abs / 1_000).toFixed(1) + " ming";
-    return sign + formatMoneyFullUZS(abs);
-  }
-
-  // UI uchun (kartochka va jadval)
-  function formatMoneyUZS(n) {
-    const abs = Math.abs(Number(n) || 0);
-    // 1 mln dan past bo'lsa — 6/7 xonali chiroyli ko'rinish
-    if (abs < 1_000_000) return formatMoneyFullUZS(n);
-    // katta bo'lsa — mln/mlrd
-    return formatMoneyShortUZS(n);
   }
 
   function escapeHtml(str) {
@@ -162,7 +168,7 @@ ADD:
   const monthlyTableBody = $("monthlyTableBody");
   const monthlyTimestamp = $("monthlyTimestamp");
   const monthlyPdfBtn = $("monthlyPdfBtn");
-  const monthlyTemplateBtn = $("monthlyTemplateBtn"); // ✅ shablon tugma (user.html da qo'shasiz)
+  const monthlyTemplateBtn = $("monthlyTemplateBtn");
 
   if (!monthlyUploadBtn || !monthlyFileInput) return;
 
@@ -230,7 +236,7 @@ ADD:
     }
   }
 
-  // ✅ HARD RESET (yangi fayl yuklanganda eskisi qolmasin)
+  // ✅ HARD RESET
   function hardResetMonthlyState() {
     monthlyRows = [];
     monthlyAgg = [];
@@ -305,32 +311,32 @@ ADD:
     monthlyStatsRow.innerHTML = `
       <div class="stat-card">
         <div class="dashboard-stat-label">Jami Savdo</div>
-        <div class="dashboard-stat-value">${formatMoneyUZS(totals.sales)}</div>
-        <div class="stat-subtext">so'm</div>
+        <div class="dashboard-stat-value">${F.formatUZSShort(totals.sales)}</div>
+        <div class="stat-subtext">${F.formatUZS(totals.sales)}</div>
       </div>
 
       <div class="stat-card">
         <div class="dashboard-stat-label">Jami Foyda</div>
-        <div class="dashboard-stat-value">${formatMoneyUZS(totals.profit)}</div>
-        <div class="stat-subtext">so'm</div>
+        <div class="dashboard-stat-value">${F.formatUZSShort(totals.profit)}</div>
+        <div class="stat-subtext">${F.formatUZS(totals.profit)}</div>
       </div>
 
       <div class="stat-card">
         <div class="dashboard-stat-label">Jami Xarajat</div>
-        <div class="dashboard-stat-value">${formatMoneyUZS(totals.expense)}</div>
-        <div class="stat-subtext">so'm</div>
+        <div class="dashboard-stat-value">${F.formatUZSShort(totals.expense)}</div>
+        <div class="stat-subtext">${F.formatUZS(totals.expense)}</div>
       </div>
 
       <div class="stat-card">
         <div class="dashboard-stat-label">Nasiya (Debitor)</div>
-        <div class="dashboard-stat-value">${formatMoneyUZS(totals.credit)}</div>
-        <div class="stat-subtext">so'm</div>
+        <div class="dashboard-stat-value">${F.formatUZSShort(totals.credit)}</div>
+        <div class="stat-subtext">${F.formatUZS(totals.credit)}</div>
       </div>
 
       <div class="stat-card">
         <div class="dashboard-stat-label">Qarz (Kreditor)</div>
-        <div class="dashboard-stat-value">${formatMoneyUZS(totals.debt)}</div>
-        <div class="stat-subtext">so'm</div>
+        <div class="dashboard-stat-value">${F.formatUZSShort(totals.debt)}</div>
+        <div class="stat-subtext">${F.formatUZS(totals.debt)}</div>
       </div>
     `;
   }
@@ -351,14 +357,14 @@ ADD:
     monthlyTableBody.innerHTML = aggRows.map(r => `
       <tr>
         <td><strong>${escapeHtml(r.month)}</strong></td>
-        <td>${formatMoneyUZS(r.sales)}</td>
-        <td>${formatMoneyUZS(r.cost)}</td>
-        <td><span class="highlight">${formatMoneyUZS(r.profit)}</span></td>
-        <td>${formatMoneyUZS(r.expense)}</td>
-        <td>${formatMoneyUZS(r.credit)}</td>
-        <td>${formatMoneyUZS(r.debt)}</td>
-        <td><span class="highlight">${formatMoneyUZS(r.cashflow)}</span></td>
-        <td>${r.lines}</td>
+        <td>${F.formatUZS(r.sales)}</td>
+        <td>${F.formatUZS(r.cost)}</td>
+        <td><span class="highlight">${F.formatUZS(r.profit)}</span></td>
+        <td>${F.formatUZS(r.expense)}</td>
+        <td>${F.formatUZS(r.credit)}</td>
+        <td>${F.formatUZS(r.debt)}</td>
+        <td><span class="highlight">${F.formatUZS(r.cashflow)}</span></td>
+        <td>${F.formatNum(r.lines)}</td>
       </tr>
     `).join("");
   }
@@ -416,7 +422,7 @@ ADD:
         },
         scales: {
           y: {
-            ticks: { callback: (v) => formatMoneyUZS(v) }
+            ticks: { callback: (v) => F.formatUZSShort(v) }
           }
         }
       }
@@ -500,12 +506,11 @@ ADD:
     const headers = ["Sana", "Savdo", "Tannarx", "Xarajat", "Nasiya", "Qarz"];
     const today = new Date();
     const yyyy = today.getFullYear();
-    const mm = today.getMonth(); // 0-based
+    const mm = today.getMonth();
 
-    // 3 oylik demo qatorlar (xohlasangiz olib tashlaysiz)
     const rows = [];
     for (let i = 0; i < 15; i++) {
-      const d = new Date(yyyy, mm - 2, 1 + i); // 2 oy oldin boshlab
+      const d = new Date(yyyy, mm - 2, 1 + i);
       rows.push({
         Sana: d.toISOString().slice(0, 10),
         Savdo: i % 2 === 0 ? 12000000 : 8500000,
@@ -517,19 +522,17 @@ ADD:
     }
 
     const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
-    // ustun kengligi
     ws["!cols"] = [
-      { wch: 12 }, // Sana
-      { wch: 14 }, // Savdo
-      { wch: 14 }, // Tannarx
-      { wch: 12 }, // Xarajat
-      { wch: 12 }, // Nasiya
-      { wch: 12 }  // Qarz
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 }
     ];
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Oylik");
-
     return wb;
   }
 
@@ -544,7 +547,7 @@ ADD:
 
   // ---------- Events ----------
   monthlyUploadBtn.addEventListener("click", () => {
-    monthlyFileInput.value = ""; // FIX
+    monthlyFileInput.value = "";
     monthlyFileInput.click();
   });
 
@@ -552,7 +555,7 @@ ADD:
     const file = ev.target.files?.[0];
     if (!file) return;
 
-    hardResetMonthlyState(); // ✅ eng muhim
+    hardResetMonthlyState();
 
     hideWarning();
     setFileInfoOk(file.name, file.size / 1024);
@@ -575,7 +578,6 @@ ADD:
         const { rows, skippedNoDate } = normalizeMonthlyRows(json);
         monthlyRows = rows;
 
-        // ✅ FULL REPLACE
         monthlyAgg = aggregateByMonth(rows);
         forceSetRangeFromAgg();
 
@@ -588,7 +590,7 @@ ADD:
         console.error(err);
         setFileInfoErr("Excelni o‘qishda xato: " + (err?.message || err));
       } finally {
-        ev.target.value = ""; // FIX
+        ev.target.value = "";
       }
     };
     reader.readAsArrayBuffer(file);
@@ -610,7 +612,6 @@ ADD:
     rerenderAll();
   });
 
-  // Template button bind
   function bindMonthlyTemplate() {
     if (!monthlyTemplateBtn) return;
     monthlyTemplateBtn.addEventListener("click", downloadMonthlyTemplate);
@@ -685,11 +686,11 @@ ADD:
         </div>
 
         <div class="pdf-kpis">
-          <div class="pdf-kpi"><div class="k-label">Jami Savdo</div><div class="k-value">${escapeHtml(formatMoneyUZS(tSales))}</div><div class="k-sub">so'm</div></div>
-          <div class="pdf-kpi"><div class="k-label">Jami Foyda</div><div class="k-value">${escapeHtml(formatMoneyUZS(tProfit))}</div><div class="k-sub">so'm</div></div>
-          <div class="pdf-kpi"><div class="k-label">Jami Xarajat</div><div class="k-value">${escapeHtml(formatMoneyUZS(tExpense))}</div><div class="k-sub">so'm</div></div>
-          <div class="pdf-kpi"><div class="k-label">Nasiya (Debitor)</div><div class="k-value">${escapeHtml(formatMoneyUZS(tCredit))}</div><div class="k-sub">so'm</div></div>
-          <div class="pdf-kpi"><div class="k-label">Qarz (Kreditor)</div><div class="k-value">${escapeHtml(formatMoneyUZS(tDebt))}</div><div class="k-sub">so'm</div></div>
+          <div class="pdf-kpi"><div class="k-label">Jami Savdo</div><div class="k-value">${escapeHtml(F.formatUZSShort(tSales))}</div><div class="k-sub">${escapeHtml(F.formatUZS(tSales))}</div></div>
+          <div class="pdf-kpi"><div class="k-label">Jami Foyda</div><div class="k-value">${escapeHtml(F.formatUZSShort(tProfit))}</div><div class="k-sub">${escapeHtml(F.formatUZS(tProfit))}</div></div>
+          <div class="pdf-kpi"><div class="k-label">Jami Xarajat</div><div class="k-value">${escapeHtml(F.formatUZSShort(tExpense))}</div><div class="k-sub">${escapeHtml(F.formatUZS(tExpense))}</div></div>
+          <div class="pdf-kpi"><div class="k-label">Nasiya (Debitor)</div><div class="k-value">${escapeHtml(F.formatUZSShort(tCredit))}</div><div class="k-sub">${escapeHtml(F.formatUZS(tCredit))}</div></div>
+          <div class="pdf-kpi"><div class="k-label">Qarz (Kreditor)</div><div class="k-value">${escapeHtml(F.formatUZSShort(tDebt))}</div><div class="k-sub">${escapeHtml(F.formatUZS(tDebt))}</div></div>
         </div>
 
         <div class="pdf-section">
