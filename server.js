@@ -1,4 +1,4 @@
-// server.js (ROOTDA) — Railway uchun tayyor
+// server.js (ROOTDA) — Railway uchun tayyor (admin + register qo'shildi)
 import express from "express";
 import cors from "cors";
 import session from "express-session";
@@ -16,17 +16,15 @@ app.use(express.json({ limit: "1mb" }));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Sizda users.json rootda turgani uchun:
+// users.json rootda:
 const USERS_PATH = path.join(__dirname, "users.json");
 
-// Sizda frontend `web/` papkada:
+// frontend `web/` papkada:
 const WEB_PATH = path.join(__dirname, "web");
 const PAGES_PATH = path.join(WEB_PATH, "pages");
 
 // ===== env/config =====
-// Agar FRONTEND_ORIGIN bermasangiz ham bo'ladi, chunki endi frontend ham shu domen bo'ladi.
-// Lekin baribir qoldiramiz (xohlasangiz keyin o'chirasiz).
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "";
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || ""; // bo'sh bo'lsa hammasiga ruxsat (same-domain uchun qulay)
 const SESSION_SECRET = process.env.SESSION_SECRET || "change_me_secret";
 const ADMIN_RESET_KEY = process.env.ADMIN_RESET_KEY || "admin_reset_key_123";
 const isProd = process.env.NODE_ENV === "production";
@@ -51,10 +49,7 @@ function isAuthed(req) {
 }
 
 function originAllowed(origin) {
-  // requests from tools / server-side without Origin header
   if (!origin) return true;
-
-  // agar FRONTEND_ORIGIN bo'sh bo'lsa — hammasiga ruxsat (chunki bitta domen ishlatamiz)
   if (!FRONTEND_ORIGIN) return true;
 
   const allow = String(FRONTEND_ORIGIN)
@@ -63,6 +58,29 @@ function originAllowed(origin) {
     .filter(Boolean);
 
   return allow.includes(origin);
+}
+
+function isValidUsername(u) {
+  if (!u) return false;
+  if (u.length < 2 || u.length > 50) return false;
+  // faqat eng oddiy xavfsiz belgilar
+  return /^[a-zA-Z0-9_.-]+$/.test(u);
+}
+
+function normalizePhone(p) {
+  const s = String(p || "").trim();
+  // raqamlar va + qolsin
+  const cleaned = s.replace(/[^\d+]/g, "");
+  return cleaned;
+}
+
+function requireAdmin(req, res) {
+  const adminKey = String(req.headers["x-admin-key"] || "");
+  if (adminKey !== ADMIN_RESET_KEY) {
+    res.status(403).json({ ok: false, message: "Admin key xato" });
+    return false;
+  }
+  return true;
 }
 
 // ===== CORS =====
@@ -97,21 +115,43 @@ app.use(
 // =======================================
 app.use(express.static(WEB_PATH));
 
-// Root ochilganda login page qaytarsin:
-app.get("/", (req, res) => {
-  return res.sendFile(path.join(PAGES_PATH, "login.html"));
-});
-
-// /pages/login va /pages/user pathlar uchun ham:
-app.get("/pages/login", (req, res) => {
-  return res.sendFile(path.join(PAGES_PATH, "login.html"));
-});
-app.get("/pages/user", (req, res) => {
-  return res.sendFile(path.join(PAGES_PATH, "user.html"));
-});
+app.get("/", (req, res) => res.sendFile(path.join(PAGES_PATH, "login.html")));
+app.get("/pages/login", (req, res) => res.sendFile(path.join(PAGES_PATH, "login.html")));
+app.get("/pages/user", (req, res) => res.sendFile(path.join(PAGES_PATH, "user.html")));
+app.get("/pages/admin", (req, res) => res.sendFile(path.join(PAGES_PATH, "admin.html")));
+app.get("/pages/register", (req, res) => res.sendFile(path.join(PAGES_PATH, "register.html")));
 
 // ===== ROUTES =====
 app.get("/health", (req, res) => res.json({ ok: true }));
+
+// ===== REGISTER (1-MARTA) =====
+// yangi user yaratadi: username + password + phone
+app.post("/api/register", (req, res) => {
+  const username = String(req.body?.username || "").trim();
+  const password = String(req.body?.password || "");
+  const phone = normalizePhone(req.body?.phone || "");
+
+  if (!isValidUsername(username)) {
+    return res.status(400).json({ ok: false, message: "Username noto‘g‘ri (faqat harf/son/._-)" });
+  }
+  if (!password || password.length < 4) {
+    return res.status(400).json({ ok: false, message: "Parol kamida 4 ta bo‘lsin" });
+  }
+  if (!phone || phone.length < 7) {
+    return res.status(400).json({ ok: false, message: "Telefon raqam noto‘g‘ri" });
+  }
+
+  const users = loadUsers();
+  const exists = users.find((u) => String(u.username).toLowerCase() === username.toLowerCase());
+  if (exists) {
+    return res.status(409).json({ ok: false, message: "Bu username allaqachon bor" });
+  }
+
+  users.push({ username, password, phone });
+  saveUsers(users);
+
+  return res.json({ ok: true, message: "Ro‘yxatdan o‘tish muvaffaqiyatli. Endi login qiling." });
+});
 
 // ===== LOGIN =====
 app.post("/api/login", (req, res) => {
@@ -162,11 +202,9 @@ app.post("/api/change-password", (req, res) => {
   if (!oldPassword || !newPassword) {
     return res.status(400).json({ ok: false, message: "Eski va yangi parol majburiy" });
   }
-
   if (newPassword.length < 4) {
     return res.status(400).json({ ok: false, message: "Yangi parol kamida 4 ta belgi bo‘lsin" });
   }
-
   if (oldPassword === newPassword) {
     return res.status(400).json({ ok: false, message: "Yangi parol eski parol bilan bir xil bo‘lmasin" });
   }
@@ -174,10 +212,7 @@ app.post("/api/change-password", (req, res) => {
   const users = loadUsers();
   const idx = users.findIndex((u) => String(u.username) === username);
 
-  if (idx === -1) {
-    return res.status(404).json({ ok: false, message: "Foydalanuvchi topilmadi" });
-  }
-
+  if (idx === -1) return res.status(404).json({ ok: false, message: "Foydalanuvchi topilmadi" });
   if (String(users[idx].password) !== oldPassword) {
     return res.status(400).json({ ok: false, message: "Eski parol noto‘g‘ri" });
   }
@@ -188,12 +223,56 @@ app.post("/api/change-password", (req, res) => {
   return res.json({ ok: true, message: "Parol muvaffaqiyatli o‘zgartirildi" });
 });
 
-// ===== ADMIN RESET PASSWORD =====
-app.post("/api/admin/reset-password", (req, res) => {
-  const adminKey = String(req.headers["x-admin-key"] || "");
-  if (adminKey !== ADMIN_RESET_KEY) {
-    return res.status(403).json({ ok: false, message: "Admin key xato" });
+// =================================================
+// ✅ ADMIN: USERS LIST (username/password/phone)
+// =================================================
+app.get("/api/admin/users", (req, res) => {
+  if (!requireAdmin(req, res)) return;
+
+  const users = loadUsers().map(u => ({
+    username: String(u.username || ""),
+    password: String(u.password || ""),
+    phone: String(u.phone || "")
+  }));
+
+  return res.json({ ok: true, users });
+});
+
+// =================================================
+// ✅ ADMIN: CREATE USER (admin paneldan)
+// =================================================
+app.post("/api/admin/create-user", (req, res) => {
+  if (!requireAdmin(req, res)) return;
+
+  const username = String(req.body?.username || "").trim();
+  const password = String(req.body?.password || "");
+  const phone = normalizePhone(req.body?.phone || "");
+
+  if (!isValidUsername(username)) {
+    return res.status(400).json({ ok: false, message: "Username noto‘g‘ri (faqat harf/son/._-)" });
   }
+  if (!password || password.length < 4) {
+    return res.status(400).json({ ok: false, message: "Parol kamida 4 ta bo‘lsin" });
+  }
+  if (!phone || phone.length < 7) {
+    return res.status(400).json({ ok: false, message: "Telefon raqam noto‘g‘ri" });
+  }
+
+  const users = loadUsers();
+  const exists = users.find((u) => String(u.username).toLowerCase() === username.toLowerCase());
+  if (exists) return res.status(409).json({ ok: false, message: "Bu username allaqachon bor" });
+
+  users.push({ username, password, phone });
+  saveUsers(users);
+
+  return res.json({ ok: true, message: "User qo‘shildi" });
+});
+
+// =================================================
+// ✅ ADMIN RESET PASSWORD (ADMIN KEY BILAN) — o'zi bor edi
+// =================================================
+app.post("/api/admin/reset-password", (req, res) => {
+  if (!requireAdmin(req, res)) return;
 
   const username = String(req.body?.username || "").trim();
   const newPassword = String(req.body?.newPassword || "");
@@ -205,15 +284,32 @@ app.post("/api/admin/reset-password", (req, res) => {
 
   const users = loadUsers();
   const idx = users.findIndex((u) => String(u.username).toLowerCase() === username.toLowerCase());
-
-  if (idx === -1) {
-    return res.status(404).json({ ok: false, message: "User topilmadi" });
-  }
+  if (idx === -1) return res.status(404).json({ ok: false, message: "User topilmadi" });
 
   users[idx].password = newPassword;
   saveUsers(users);
 
   return res.json({ ok: true, message: "Parol yangilandi", user: { username: users[idx].username } });
+});
+
+// =================================================
+// ✅ ADMIN: DELETE USER
+// =================================================
+app.delete("/api/admin/users/:username", (req, res) => {
+  if (!requireAdmin(req, res)) return;
+
+  const username = String(req.params.username || "").trim();
+  if (!username) return res.status(400).json({ ok: false, message: "username kerak" });
+
+  const users = loadUsers();
+  const before = users.length;
+  const filtered = users.filter(u => String(u.username).toLowerCase() !== username.toLowerCase());
+  if (filtered.length === before) {
+    return res.status(404).json({ ok: false, message: "User topilmadi" });
+  }
+
+  saveUsers(filtered);
+  return res.json({ ok: true, message: "User o‘chirildi" });
 });
 
 // ===== DEBUG ROUTES =====

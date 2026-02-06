@@ -13,6 +13,7 @@
       min-height: 100vh; margin: 0;
       display: flex; align-items: center; justify-content: center;
       background: linear-gradient(135deg, #6a7cff, #8e6cff);
+      padding: 18px;
     }
     .login-card {
       width: 100%; max-width: 380px;
@@ -36,6 +37,24 @@
       background: #4f6ef7; color: #fff;
       font-size: 16px; font-weight: 700;
       cursor: pointer;
+    }
+    .sub-actions{
+      margin-top: 12px;
+      display:flex;
+      gap:10px;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      font-size:14px;
+    }
+    .link-btn{
+      border:none;
+      background:transparent;
+      color:#4f6ef7;
+      font-weight:800;
+      cursor:pointer;
+      padding:0;
+      text-decoration: underline;
     }
     .login-msg {
       margin-top: 14px; font-size: 14px;
@@ -62,14 +81,22 @@
     </div>
 
     <button class="login-btn" id="loginBtn">Kirish</button>
+
+    <div class="sub-actions">
+      <div>1-marta ishlatyapsizmi?</div>
+      <button class="link-btn" id="goRegister" type="button">Ro‘yxatdan o‘tish</button>
+    </div>
+
+    <div class="sub-actions">
+      <div>Admin kerakmi?</div>
+      <button class="link-btn" id="goAdmin" type="button">Admin panel</button>
+    </div>
+
     <div class="login-msg" id="loginMsg"></div>
   </div>
 
-  <!-- ✅ API_BASE shu yerdan keladi -->
-  <script src="/config.js"></script>
-
 <script>
-const API = window.API_BASE || "";
+const API = ""; // same domain
 
 const btn = document.getElementById("loginBtn");
 const msg = document.getElementById("loginMsg");
@@ -78,6 +105,9 @@ function show(type, text) {
   msg.className = "login-msg " + type;
   msg.textContent = text;
 }
+
+document.getElementById("goRegister").onclick = () => location.href = "register.html";
+document.getElementById("goAdmin").onclick = () => location.href = "admin.html";
 
 btn.onclick = async () => {
   const username = document.getElementById("username").value.trim();
@@ -100,7 +130,7 @@ btn.onclick = async () => {
     if (!res.ok) return show("error", data.message || "Xato");
 
     show("success", "Kirish muvaffaqiyatli");
-    setTimeout(() => location.href = "user.html", 300);
+    setTimeout(() => location.href = "user.html", 250);
 
   } catch {
     show("error", "Server bilan aloqa yo‘q");

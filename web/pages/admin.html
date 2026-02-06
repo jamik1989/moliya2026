@@ -1,67 +1,293 @@
 <!doctype html>
 <html lang="uz">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin - Parol Reset</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>FORTEL - Admin</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
   <style>
-    body { font-family: system-ui; background:#f5f7ff; margin:0; display:flex; justify-content:center; padding:40px; }
-    .card { width:420px; background:#fff; border-radius:16px; padding:22px; box-shadow:0 15px 40px rgba(0,0,0,.08); }
-    h2 { margin:0 0 14px; }
-    input { width:100%; padding:12px; border:1px solid #ddd; border-radius:12px; margin:8px 0; font-size:15px; }
-    button { width:100%; padding:12px; border:none; border-radius:12px; background:#4f6ef7; color:#fff; font-weight:700; cursor:pointer; }
-    .msg { margin-top:12px; padding:10px; border-radius:10px; display:none; }
-    .ok { background:#e8f8ef; color:#1e8449; display:block; }
-    .err { background:#ffeaea; color:#c0392b; display:block; }
-    small { color:#666; }
+    *{ box-sizing:border-box; font-family:system-ui; }
+    body{
+      margin:0; background:#f4f6fb; min-height:100vh;
+      padding: 18px;
+    }
+    .wrap{ max-width: 1100px; margin: 0 auto; }
+    .top{
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+      background:#fff; border:1px solid #eaeaea; border-radius:14px;
+      padding: 12px 14px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    .title{ font-weight: 900; display:flex; align-items:center; gap:10px; }
+    .btn{
+      border:1px solid #ddd; background:#fff; cursor:pointer;
+      border-radius:10px; padding: 8px 12px; font-weight:800;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .card{
+      background:#fff; border:1px solid #eaeaea; border-radius:14px;
+      padding: 14px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    .row{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    }
+    .inp{
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      min-width: 220px;
+      flex: 1;
+    }
+    .msg{
+      margin-top: 10px; padding: 10px; border-radius: 10px; display:none;
+      font-size: 14px;
+    }
+    .msg.err{ display:block; background:#ffeaea; color:#c0392b; }
+    .msg.ok{ display:block; background:#e8f8ef; color:#1e8449; }
+
+    table{
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+    th, td{
+      border-bottom: 1px solid #eee;
+      padding: 10px;
+      text-align: left;
+      vertical-align: middle;
+    }
+    th{ background:#fafafa; font-weight: 900; }
+    .actions{
+      display:flex; gap:8px; flex-wrap:wrap;
+    }
+    .danger{ border-color:#ffb3b3; color:#c0392b; }
+    .primary{ border-color:#b8c6ff; color:#2c4bff; }
+    .small{ padding: 6px 10px; border-radius: 9px; font-weight:900; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   </style>
 </head>
+
 <body>
-  <div class="card">
-    <h2>🔐 Admin: Parol reset</h2>
-    <small>Faqat admin biladigan kalit bilan ishlaydi.</small>
-
-    <input id="adminKey" placeholder="Admin key (x-admin-key)" value="admin_reset_key_123" />
-    <input id="username" placeholder="Username (masalan: ali)" />
-    <input id="newPassword" placeholder="Yangi parol (kamida 4 ta)" />
-
-    <button id="btn">Reset qilish</button>
-    <div id="msg" class="msg"></div>
+<div class="wrap">
+  <div class="top">
+    <div class="title"><i class="fa-solid fa-user-shield"></i> Admin panel</div>
+    <div class="row" style="justify-content:flex-end;">
+      <button class="btn" id="goLogin"><i class="fa-solid fa-arrow-left"></i> Login</button>
+      <button class="btn" id="refreshBtn"><i class="fa-solid fa-rotate"></i> Yangilash</button>
+    </div>
   </div>
 
-  <script>
-    const API = "http://127.0.0.1:3000";
-    const msg = document.getElementById("msg");
+  <div class="grid">
+    <!-- Admin key -->
+    <div class="card">
+      <div style="font-weight:900;margin-bottom:8px;">Admin key</div>
+      <div class="row">
+        <input id="adminKey" class="inp mono" placeholder="ADMIN_RESET_KEY ni kiriting" />
+        <button class="btn primary" id="saveKeyBtn">Saqlash</button>
+        <button class="btn" id="clearKeyBtn">Tozalash</button>
+      </div>
+      <div class="msg" id="keyMsg"></div>
+    </div>
 
-    function show(type, text){
-      msg.className = "msg " + type;
-      msg.textContent = text;
+    <!-- Create user -->
+    <div class="card">
+      <div style="font-weight:900;margin-bottom:8px;">Yangi user qo‘shish</div>
+      <div class="row">
+        <input id="cuUser" class="inp" placeholder="username (faqat harf/son/._-)" />
+        <input id="cuPass" class="inp" type="password" placeholder="password (min 4)" />
+        <input id="cuPhone" class="inp" placeholder="phone (+998...)" />
+        <button class="btn primary" id="createBtn"><i class="fa-solid fa-plus"></i> Qo‘shish</button>
+      </div>
+      <div class="msg" id="createMsg"></div>
+    </div>
+
+    <!-- Users table -->
+    <div class="card">
+      <div style="font-weight:900;margin-bottom:8px;">Foydalanuvchilar</div>
+      <div class="msg" id="tableMsg"></div>
+      <div style="overflow:auto;">
+        <table id="usersTable">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Password</th>
+              <th>Phone</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;color:#666;font-size:13px;">
+        Eslatma: Bu demo variant — password ochiq ko‘rinadi (siz so‘raganingiz uchun).
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "";
+
+const adminKeyInp = document.getElementById("adminKey");
+const keyMsg = document.getElementById("keyMsg");
+
+const createMsg = document.getElementById("createMsg");
+const tableMsg = document.getElementById("tableMsg");
+const tb = document.getElementById("tb");
+
+function showMsg(el, type, text){
+  el.className = "msg " + type;
+  el.textContent = text;
+}
+
+function getKey(){
+  return sessionStorage.getItem("FORTEL_ADMIN_KEY") || "";
+}
+function setKey(v){
+  sessionStorage.setItem("FORTEL_ADMIN_KEY", v);
+}
+
+function headers(){
+  const k = getKey();
+  return { "Content-Type": "application/json", "x-admin-key": k };
+}
+
+document.getElementById("goLogin").onclick = () => location.href = "login.html";
+
+document.getElementById("saveKeyBtn").onclick = () => {
+  const k = adminKeyInp.value.trim();
+  if (!k) return showMsg(keyMsg, "err", "Admin key kiriting");
+  setKey(k);
+  showMsg(keyMsg, "ok", "Admin key saqlandi (sessionStorage)");
+};
+
+document.getElementById("clearKeyBtn").onclick = () => {
+  sessionStorage.removeItem("FORTEL_ADMIN_KEY");
+  adminKeyInp.value = "";
+  showMsg(keyMsg, "ok", "Admin key tozalandi");
+};
+
+document.getElementById("refreshBtn").onclick = () => loadUsers();
+
+document.getElementById("createBtn").onclick = async () => {
+  const username = document.getElementById("cuUser").value.trim();
+  const password = document.getElementById("cuPass").value;
+  const phone = document.getElementById("cuPhone").value.trim();
+
+  if (!username || !password || !phone) return showMsg(createMsg, "err", "Username, password, phone majburiy");
+  if (password.length < 4) return showMsg(createMsg, "err", "Parol kamida 4 ta bo‘lsin");
+
+  try{
+    const res = await fetch(API + "/api/admin/create-user", {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ username, password, phone })
+    });
+    const data = await res.json().catch(()=> ({}));
+    if (!res.ok || !data.ok) return showMsg(createMsg, "err", data.message || "Xato");
+
+    showMsg(createMsg, "ok", "User qo‘shildi");
+    document.getElementById("cuUser").value = "";
+    document.getElementById("cuPass").value = "";
+    document.getElementById("cuPhone").value = "";
+    loadUsers();
+  }catch(e){
+    showMsg(createMsg, "err", "Serverga ulanib bo‘lmadi");
+  }
+};
+
+async function resetPassword(username){
+  const newPassword = prompt("Yangi parolni kiriting (min 4):");
+  if (!newPassword) return;
+  if (newPassword.length < 4) return alert("Parol kamida 4 ta bo‘lsin");
+
+  const res = await fetch(API + "/api/admin/reset-password", {
+    method:"POST",
+    headers: headers(),
+    body: JSON.stringify({ username, newPassword })
+  });
+  const data = await res.json().catch(()=> ({}));
+  if (!res.ok || !data.ok) return alert(data.message || "Xato");
+  alert("Parol yangilandi");
+  loadUsers();
+}
+
+async function deleteUser(username){
+  if (!confirm("Rostdan ham o‘chirasizmi? (" + username + ")")) return;
+
+  const res = await fetch(API + "/api/admin/users/" + encodeURIComponent(username), {
+    method:"DELETE",
+    headers: headers()
+  });
+  const data = await res.json().catch(()=> ({}));
+  if (!res.ok || !data.ok) return alert(data.message || "Xato");
+  alert("User o‘chirildi");
+  loadUsers();
+}
+
+async function loadUsers(){
+  tb.innerHTML = "";
+  showMsg(tableMsg, "ok", "Yuklanmoqda...");
+
+  adminKeyInp.value = getKey();
+
+  try{
+    const res = await fetch(API + "/api/admin/users", { headers: headers() });
+    const data = await res.json().catch(()=> ({}));
+    if (!res.ok || !data.ok) {
+      return showMsg(tableMsg, "err", data.message || "Admin key xato yoki server xato");
     }
 
-    document.getElementById("btn").onclick = async () => {
-      const adminKey = document.getElementById("adminKey").value.trim();
-      const username = document.getElementById("username").value.trim();
-      const newPassword = document.getElementById("newPassword").value.trim();
+    showMsg(tableMsg, "ok", "OK: " + data.users.length + " ta user");
+    tb.innerHTML = data.users.map(u => `
+      <tr>
+        <td class="mono">${escapeHtml(u.username)}</td>
+        <td class="mono">${escapeHtml(u.password)}</td>
+        <td class="mono">${escapeHtml(u.phone || "")}</td>
+        <td>
+          <div class="actions">
+            <button class="btn small primary" data-reset="${escapeAttr(u.username)}">Reset</button>
+            <button class="btn small danger" data-del="${escapeAttr(u.username)}">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
 
-      if (!adminKey || !username || !newPassword) return show("err", "Hamma maydonlarni to‘ldiring");
-      if (newPassword.length < 4) return show("err", "Parol kamida 4 ta bo‘lsin");
+    // bind actions
+    tb.querySelectorAll("[data-reset]").forEach(b => {
+      b.addEventListener("click", () => resetPassword(b.getAttribute("data-reset")));
+    });
+    tb.querySelectorAll("[data-del]").forEach(b => {
+      b.addEventListener("click", () => deleteUser(b.getAttribute("data-del")));
+    });
 
-      try{
-        const res = await fetch(API + "/api/admin/reset-password", {
-          method: "POST",
-          headers: {
-            "Content-Type":"application/json",
-            "x-admin-key": adminKey
-          },
-          body: JSON.stringify({ username, newPassword })
-        });
-        const data = await res.json().catch(()=> ({}));
-        if (!res.ok || !data.ok) return show("err", data.message || "Xato");
-        show("ok", "✅ Parol yangilandi: " + username);
-      }catch(e){
-        show("err", "Serverga ulanib bo‘lmadi");
-      }
-    };
-  </script>
+  }catch(e){
+    showMsg(tableMsg, "err", "Serverga ulanib bo‘lmadi");
+  }
+}
+
+function escapeHtml(s){
+  return String(s || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
+function escapeAttr(s){
+  return escapeHtml(s).replaceAll("`","&#96;");
+}
+
+loadUsers();
+</script>
 </body>
 </html>
