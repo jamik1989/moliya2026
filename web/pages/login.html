@@ -35,26 +35,20 @@
       width: 100%; padding: 14px;
       border-radius: 14px; border: none;
       background: #4f6ef7; color: #fff;
-      font-size: 16px; font-weight: 700;
+      font-size: 16px; font-weight: 800;
       cursor: pointer;
     }
-    .sub-actions{
-      margin-top: 12px;
-      display:flex;
-      gap:10px;
-      justify-content:space-between;
-      align-items:center;
-      flex-wrap:wrap;
-      font-size:14px;
-    }
-    .link-btn{
-      border:none;
-      background:transparent;
-      color:#4f6ef7;
-      font-weight:800;
-      cursor:pointer;
-      padding:0;
-      text-decoration: underline;
+    .admin-btn{
+      width: 100%;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid #d7dcff;
+      background: #fff;
+      color: #2c4bff;
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+      margin-top: 10px;
     }
     .login-msg {
       margin-top: 14px; font-size: 14px;
@@ -82,23 +76,19 @@
 
     <button class="login-btn" id="loginBtn">Kirish</button>
 
-    <div class="sub-actions">
-      <div>1-marta ishlatyapsizmi?</div>
-      <button class="link-btn" id="goRegister" type="button">Ro‘yxatdan o‘tish</button>
-    </div>
-
-    <div class="sub-actions">
-      <div>Admin kerakmi?</div>
-      <button class="link-btn" id="goAdmin" type="button">Admin panel</button>
-    </div>
+    <!-- ✅ faqat admin ishlatadi -->
+    <button class="admin-btn" id="adminBtn">
+      <i class="fa-solid fa-user-shield"></i> Admin
+    </button>
 
     <div class="login-msg" id="loginMsg"></div>
   </div>
 
 <script>
-const API = ""; // same domain
+const API = "";
 
 const btn = document.getElementById("loginBtn");
+const adminBtn = document.getElementById("adminBtn");
 const msg = document.getElementById("loginMsg");
 
 function show(type, text) {
@@ -106,8 +96,7 @@ function show(type, text) {
   msg.textContent = text;
 }
 
-document.getElementById("goRegister").onclick = () => location.href = "register.html";
-document.getElementById("goAdmin").onclick = () => location.href = "admin.html";
+adminBtn.onclick = () => location.href = "admin.html";
 
 btn.onclick = async () => {
   const username = document.getElementById("username").value.trim();

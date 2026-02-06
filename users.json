@@ -1,4 +1,6 @@
 [
+  { "username": "admin", "password": "admin1234", "phone": "+998900000000", "role": "admin" },
+
   { "username": "ali",  "password": "44444", "phone": "+998901112233" },
   { "username": "vali", "password": "1111",  "phone": "+998907778899" }
 ]
