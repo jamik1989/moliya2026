@@ -148,7 +148,7 @@
   <script>
     // ✅ Auth check: config.js yuklangandan keyin ishlaydi
     async function authCheck() {
-      window.API_BASE = window.API_BASE || "http://127.0.0.1:3000";
+      window.API_BASE = window.API_BASE || "";
       try {
         const res = await fetch(window.API_BASE + "/api/me", { credentials: "include" });
         if (!res.ok) return window.location.replace("login.html");
