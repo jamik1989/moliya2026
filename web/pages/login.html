@@ -65,8 +65,11 @@
     <div class="login-msg" id="loginMsg"></div>
   </div>
 
+  <!-- ✅ API_BASE shu yerdan keladi -->
+  <script src="/config.js"></script>
+
 <script>
-const API = "http://127.0.0.1:3000";
+const API = window.API_BASE || "http://127.0.0.1:3000";
 
 const btn = document.getElementById("loginBtn");
 const msg = document.getElementById("loginMsg");
@@ -93,7 +96,7 @@ btn.onclick = async () => {
       body: JSON.stringify({ username, password })
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) return show("error", data.message || "Xato");
 
     show("success", "Kirish muvaffaqiyatli");
