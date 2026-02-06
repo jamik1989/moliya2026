@@ -5,12 +5,22 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>FORTEL</title>
 
+  <!-- CSS -->
   <link rel="stylesheet" href="../assets/css/app.css" />
+
+  <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- XLSX -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- PDF Export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+  <!-- ✅ BRAND CONFIG -->
   <script>
     window.DASH_BRAND = {
       name: "SHOHASAR",
@@ -18,9 +28,26 @@
       accent: "#111827",
       logoUrl: "../assets/img/logo.png"
     };
+
+    // ✅ Railway/Prod: API shu domenning o'zida
+    // Agar alohida backend domen bo'lsa, keyin bu yerga to'liq URL qo'yiladi.
+    window.API_BASE = "";
+  </script>
+
+  <!-- ✅ Auth check (session cookie) -->
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const res = await fetch(window.API_BASE + "/api/me", { credentials: "include" });
+        if (!res.ok) return window.location.replace("login.html");
+      } catch (e) {
+        return window.location.replace("login.html");
+      }
+    });
   </script>
 
   <style>
+    /* Legend box (minimal, app.css bilan urishmaydi) */
     .abc-legend{
       margin: 20px;
       background:#fff;
@@ -87,6 +114,7 @@
 <body>
   <div class="main-container">
 
+    <!-- TOP BAR -->
     <div class="topbar" style="display:flex;align-items:center;justify-content:space-between;padding:10px 15px;background:#fff;">
       <div style="font-weight:700;">FORTEL</div>
 
@@ -129,12 +157,449 @@
       </button>
     </div>
 
-    <!-- ⚠️ Sizning real dashboard kontentingiz shu yerda bo‘lishi kerak -->
-    <!-- Hozir bu faylda yo‘q. Agar siz eski to‘liq user.html’ni tashlasangiz,
-         men hammasini ichiga qo‘shib, to‘liq qilib qaytaraman. -->
+    <!-- ================= KALKULYATOR TAB ================= -->
+    <div id="calculator-tab" class="tab-content active">
+      <div class="header">
+        <h1>🏢 Tadbirkor Kalkulyatori</h1>
+        <div class="subtitle">Zararsizlik Nuqtasi • Maqsadli Foyda • Kassa Xavfi</div>
+      </div>
+
+      <div class="tax-toggle">
+        <button class="tax-tab active" data-tab="1percent">1% Soliq</button>
+        <button class="tax-tab" data-tab="qqs">QQS Rejimi</button>
+      </div>
+
+      <div class="input-section">
+        <div class="input-grid">
+          <div class="input-card">
+            <label class="input-label">💵 Savdo (Kassa)</label>
+            <input type="number" class="input-value" id="sales" value="1000000000">
+            <div class="input-preview" id="salesPreview">1,000,000,000 so'm</div>
+          </div>
+
+          <div class="input-card">
+            <label class="input-label">📦 Tovar Tannarxi</label>
+            <input type="number" class="input-value" id="cost" value="600000000">
+            <div class="input-preview" id="costPreview">600,000,000 so'm</div>
+          </div>
+
+          <div class="input-card">
+            <label class="input-label">🏢 Doimiy Xarajat</label>
+            <input type="number" class="input-value" id="fixedCost" value="50000000">
+            <div class="input-preview" id="fixedCostPreview">50,000,000 so'm</div>
+          </div>
+
+          <div class="input-card">
+            <label class="input-label">⚡ Sotuv harajati</label>
+            <input type="number" class="input-value" id="operatingCost" value="30000000">
+            <div class="input-preview" id="operatingCostPreview">30,000,000 so'm</div>
+          </div>
+        </div>
+
+        <div class="quick-buttons">
+          <button class="quick-btn" onclick="quickSet('sales', 500000000)">500M</button>
+          <button class="quick-btn" onclick="quickSet('sales', 1000000000)">1MRD</button>
+          <button class="quick-btn" onclick="quickSet('sales', 2000000000)">2MRD</button>
+          <button class="quick-btn" onclick="quickSet('sales', 5000000000)">5MRD</button>
+        </div>
+      </div>
+
+      <div class="results-section">
+        <div class="result-card">
+          <div class="result-title">🎯 Zararsizlik Nuqtasi</div>
+          <div class="result-amount" id="breakEvenAmount">0 so'm</div>
+
+          <div class="progress-container">
+            <div class="progress-bar" id="progressBar"
+              style="width: 0%; background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);"></div>
+          </div>
+
+          <div id="statusContainer"></div>
+
+          <div class="marja-card">
+            <div class="marja-title">📊 Foyda Marjasi</div>
+            <div class="marja-value" id="profitMargin">0%</div>
+            <div class="marja-title">Soliqdan keyingi foyda</div>
+          </div>
+        </div>
+
+        <div class="result-card">
+          <div class="section-title" style="margin-bottom: 15px;">🎯 Maqsadli Foyda</div>
+          <div class="input-card">
+            <label class="input-label">💼 Xohlagan sof foyda (oyiga)</label>
+            <input type="number" class="input-value" id="targetProfit" value="100000000">
+            <div class="input-preview" id="targetProfitPreview">100,000,000 so'm</div>
+          </div>
+          <div style="margin-top: 15px;">
+            <div class="result-title">📈 Kerakli Savdo</div>
+            <div class="result-amount" id="requiredSales">0 so'm</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">💰 Kassa Uzilishi Xavfi</div>
+        <div class="section-description">Pulingiz qancha vaqtda aylanadi?</div>
+      </div>
+
+      <div class="cashflow-inputs">
+        <div class="cashflow-card">
+          <div class="cashflow-icon">👥</div>
+          <div class="input-label">Mijoz Qarzi</div>
+          <input type="number" class="cashflow-input" id="customerPaymentDays" value="30" min="0" max="365">
+          <div class="input-preview" id="customerPaymentPreview">30 kun</div>
+        </div>
+
+        <div class="cashflow-card">
+          <div class="cashflow-icon">📦</div>
+          <div class="input-label">Tovar sotishi</div>
+          <input type="number" class="cashflow-input" id="inventoryDays" value="15" min="0" max="365">
+          <div class="input-preview" id="inventoryPreview">15 kun</div>
+        </div>
+
+        <div class="cashflow-card">
+          <div class="cashflow-icon">🏢</div>
+          <div class="input-label">Taminotchi</div>
+          <input type="number" class="cashflow-input" id="supplierPaymentDays" value="45" min="0" max="365">
+          <div class="input-preview" id="supplierPaymentPreview">45 kun</div>
+        </div>
+      </div>
+
+      <div class="result-card" style="margin: 0 15px 20px;">
+        <div class="result-title">🔄 Kassa Aylanish Davri</div>
+        <div class="result-amount" id="cashCycleDays">0 kun</div>
+
+        <div class="gauge-container">
+          <div class="gauge-background">
+            <div class="gauge-pointer" id="gaugePointer" style="left: 50%;"></div>
+          </div>
+          <div class="gauge-labels">
+            <div>✅ Ideal</div>
+            <div>⚠️ Ehtiyot</div>
+            <div>🚨 Xavf</div>
+          </div>
+        </div>
+
+        <div id="cashflowStatus"></div>
+
+        <div class="cycle-breakdown">
+          <div class="cycle-item">
+            <div class="cycle-label">Mijoz qarzi</div>
+            <div class="cycle-value" id="customerDebtDays">30 kun</div>
+          </div>
+          <div class="cycle-arrow">+</div>
+          <div class="cycle-item">
+            <div class="cycle-label">Tovar yotishi</div>
+            <div class="cycle-value" id="inventoryValueDays">15 kun</div>
+          </div>
+          <div class="cycle-arrow">-</div>
+          <div class="cycle-item">
+            <div class="cycle-label">Yetkazib beruvchi</div>
+            <div class="cycle-value" id="supplierPaymentValueDays">45 kun</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="action-btn btn-primary" onclick="runFullAnalysis()">
+          <span>🔄</span> To'liq Tahlil Qilish
+        </button>
+        <button class="action-btn btn-secondary" onclick="resetCalculator()">
+          <span>🔄</span> Yangilash
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= ABC TAB ================= -->
+    <div id="abc-tab" class="tab-content">
+      <div class="header">
+        <h1><i class="fas fa-chart-network"></i> ABC-XYZ Dashboard</h1>
+        <div class="subtitle">Excel yuklang — tahlil avtomatik hisoblanadi</div>
+      </div>
+
+      <div class="upload-section">
+        <div class="upload-actions" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button class="upload-btn" id="uploadBtn" type="button">
+            <i class="fas fa-file-excel"></i> Excel Fayl Yuklash
+          </button>
+
+          <button class="upload-btn" id="abcTemplateBtn" type="button">
+            <i class="fas fa-file-arrow-down"></i> Shablon Yuklash
+          </button>
+
+          <button class="upload-btn pdf-btn" id="abcPdfBtn" type="button">
+            <i class="fas fa-file-pdf"></i> PDF Yuklab olish
+          </button>
+        </div>
+
+        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
+        <div class="file-info" id="fileInfo">
+          Excelda ustunlar: Mahsulot Nomi, Tannarx, Sotish Narxi, Sotilgan, Sana
+        </div>
+      </div>
+
+      <div class="stats-row" id="statsRow"></div>
+
+      <div class="filters-container">
+        <div class="filters-section">
+          <div class="filters-title"><i class="fas fa-filter"></i> Toifa</div>
+          <div class="category-filters" id="categoryFilters"></div>
+        </div>
+
+        <div class="filters-section">
+          <div class="filters-title"><i class="fas fa-calendar-alt"></i> Sana</div>
+          <div class="period-filters" id="periodFilters"></div>
+
+          <div class="date-picker" id="datePicker" style="display:none;">
+            <div style="display:flex;gap:10px;width:100%;">
+              <div style="flex:1;">
+                <div class="date-label">Dan:</div>
+                <input type="date" class="date-input" id="startDate">
+              </div>
+              <div style="flex:1;">
+                <div class="date-label">Gacha:</div>
+                <input type="date" class="date-input" id="endDate">
+              </div>
+            </div>
+            <button class="date-apply-btn" id="applyDateRange" type="button">
+              <i class="fas fa-check"></i> Qo'llash
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="products-section">
+        <div class="dashboard-section-title"><i class="fas fa-list"></i> Jadval</div>
+
+        <div id="productsTableContainer">
+          <div class="empty-state" id="emptyState">
+            <i class="fas fa-database"></i>
+            <h3>Ma'lumotlar mavjud emas</h3>
+            <p>Excel fayl yuklang</p>
+          </div>
+
+          <div class="loading" id="loading" style="display:none;">
+            <div class="spinner"></div>
+            <span style="margin-left:15px;">Tahlil qilinmoqda...</span>
+          </div>
+
+          <table class="products-table" id="productsTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>Mahsulot</th>
+                <th>Tannarx</th>
+                <th>Sotish</th>
+                <th>Sotilgan</th>
+                <th>Foyda</th>
+                <th>ABC</th>
+                <th>XYZ</th>
+                <th>Toifa</th>
+                <th>Sana</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="abc-legend" id="abcLegendBox">
+        <div class="abc-legend-head">
+          <div class="abc-legend-title">
+            <i class="fa-solid fa-circle-info"></i>
+            Ko‘rsatkich izohi
+            <small>
+              (Tanlangan: <b id="abcCurrentCategory">ALL</b> • Mahsulot: <b><span id="abcProductCount">0</span> ta</b>)
+            </small>
+          </div>
+
+          <button class="abc-legend-toggle" id="abcLegendToggle" type="button">
+            Yashirish
+          </button>
+        </div>
+
+        <div class="abc-legend-body" id="abcLegendText">
+          <div style="margin-bottom:10px;">
+            <span class="abc-chip">A</span> Daromadning asosiy qismi (TOP foyda)
+            &nbsp;•&nbsp;
+            <span class="abc-chip">B</span> O‘rtacha
+            &nbsp;•&nbsp;
+            <span class="abc-chip">C</span> Kam daromad
+          </div>
+
+          <div style="margin-bottom:10px;">
+            <span class="abc-chip">X</span> Barqaror sotiladi
+            &nbsp;•&nbsp;
+            <span class="abc-chip">Y</span> O‘rtacha tebranish
+            &nbsp;•&nbsp;
+            <span class="abc-chip">Z</span> Juda tebranadi / sekin aylanadi
+          </div>
+
+          <div>
+            <b>AX</b> — Eng kuchli: yuqori foyda + barqaror sotuv (oltin fond).
+            <br/>
+            <b>AY/AZ</b> — Foydali, lekin sotuv barqaror emas.
+            <br/>
+            <b>BX/BY/BZ</b> — O‘rtacha segment (nazorat/optimallashtirish).
+            <br/>
+            <b>CX/CY/CZ</b> — Past foyda; <b>CZ</b> ko‘pincha “o‘lik yuk” (qisqartirish yoki reja).
+          </div>
+
+          <div class="abc-note">
+            Eslatma: Natija siz yuklagan Excel va filtrlar (toifa + davr) bo‘yicha hisoblanadi.
+          </div>
+        </div>
+      </div>
+
+      <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <!-- ================= MONTHLY TAB ================= -->
+    <div id="monthly-tab" class="tab-content">
+      <div class="header">
+        <h1><i class="fas fa-chart-line"></i> Oylik Tahlil</h1>
+        <div class="subtitle">Jami Savdo • Jami Foyda • Xarajat • Nasiya • Qarz (Excel asosida)</div>
+      </div>
+
+      <div class="upload-section">
+        <div class="upload-actions" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button class="upload-btn" id="monthlyUploadBtn" type="button">
+            <i class="fas fa-file-excel"></i> Oylik Excel Yuklash
+          </button>
+
+          <button class="upload-btn" id="monthlyTemplateBtn" type="button">
+            <i class="fas fa-file-arrow-down"></i> Shablon Yuklash
+          </button>
+
+          <button class="upload-btn pdf-btn" id="monthlyPdfBtn" type="button">
+            <i class="fas fa-file-pdf"></i> PDF Yuklab olish
+          </button>
+        </div>
+
+        <input type="file" id="monthlyFileInput" accept=".xlsx,.xls" style="display:none;">
+        <div class="file-info" id="monthlyFileInfo">
+          Ustunlar (ideal): Sana (majburiy), Savdo, Tannarx, Xarajat, Nasiya, Qarz
+        </div>
+      </div>
+
+      <div class="products-section" id="monthlyWarningsBox" style="display:none;">
+        <div class="dashboard-section-title">
+          <i class="fas fa-triangle-exclamation"></i> Ogohlantirish
+        </div>
+        <div class="description" id="monthlyWarningsText"></div>
+      </div>
+
+      <div class="stats-row" id="monthlyStatsRow"></div>
+
+      <div class="products-section">
+        <div class="dashboard-section-title">
+          <i class="fas fa-filter"></i> Filtrlar
+        </div>
+
+        <div class="filters-container" style="margin:0;">
+          <div class="filters-section">
+            <div class="filters-title"><i class="fas fa-calendar-alt"></i> Oy oralig‘i</div>
+
+            <div class="date-picker" style="display:flex;">
+              <div style="display:flex;gap:10px;width:100%;">
+                <div style="flex:1;">
+                  <div class="date-label">Dan:</div>
+                  <input type="month" class="date-input" id="monthlyStartMonth">
+                </div>
+                <div style="flex:1;">
+                  <div class="date-label">Gacha:</div>
+                  <input type="month" class="date-input" id="monthlyEndMonth">
+                </div>
+              </div>
+
+              <button class="date-apply-btn" id="monthlyApplyRange" type="button">
+                <i class="fas fa-check"></i> Qo'llash
+              </button>
+            </div>
+
+            <div class="description" style="margin-top:10px;">
+              Sana ustuni majburiy: sana bo‘lmasa qator tahlilga kirmaydi.
+            </div>
+          </div>
+
+          <div class="filters-section">
+            <div class="filters-title"><i class="fas fa-list"></i> Ko‘rsatkich</div>
+
+            <div class="period-filters" style="grid-template-columns:repeat(4,1fr);">
+              <button class="period-btn active" data-metric="compare" type="button">
+                <div class="period-icon"><i class="fas fa-sliders"></i></div>
+                <div class="period-name">Taqqoslash</div>
+              </button>
+
+              <button class="period-btn" data-metric="sales" type="button">
+                <div class="period-icon"><i class="fas fa-sack-dollar"></i></div>
+                <div class="period-name">Savdo</div>
+              </button>
+
+              <button class="period-btn" data-metric="profit" type="button">
+                <div class="period-icon"><i class="fas fa-chart-pie"></i></div>
+                <div class="period-name">Foyda</div>
+              </button>
+
+              <button class="period-btn" data-metric="cashflow" type="button">
+                <div class="period-icon"><i class="fas fa-coins"></i></div>
+                <div class="period-name">Cashflow</div>
+              </button>
+            </div>
+
+            <div class="description" style="margin-top:10px;">
+              Taqqoslash: Savdo + Foyda + Cashflow (bitta grafikda). Cashflow: Savdo - Tannarx - Xarajat.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="products-section">
+        <div class="dashboard-section-title">
+          <i class="fas fa-chart-area"></i> Oylik Grafik
+        </div>
+
+        <div id="monthlyChartWrap">
+          <canvas id="monthlyChart" height="120"></canvas>
+        </div>
+      </div>
+
+      <div class="products-section">
+        <div class="dashboard-section-title">
+          <i class="fas fa-table"></i> Oylik Jadval
+        </div>
+
+        <div id="monthlyTableContainer">
+          <div class="empty-state" id="monthlyEmptyState">
+            <i class="fas fa-database"></i>
+            <h3>Ma'lumotlar mavjud emas</h3>
+            <p>Oylik tahlil uchun Excel fayl yuklang</p>
+          </div>
+
+          <table class="products-table" id="monthlyTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>Oy</th>
+                <th>Jami Savdo</th>
+                <th>Jami Tannarx</th>
+                <th>Jami Foyda</th>
+                <th>Xarajat</th>
+                <th>Nasiya</th>
+                <th>Qarz</th>
+                <th>Sof (Cashflow)</th>
+                <th>Qatorlar</th>
+              </tr>
+            </thead>
+            <tbody id="monthlyTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="timestamp" id="monthlyTimestamp"></div>
+    </div>
 
   </div>
 
+  <!-- JS (tartib MUHIM) -->
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/utils/formatters.js" defer></script>
   <script src="../assets/js/modules/calc.js" defer></script>
@@ -142,23 +607,17 @@
   <script src="../assets/js/modules/abcxyz.js" defer></script>
   <script src="../assets/js/modules/monthly.js" defer></script>
 
-  <!-- ✅ API_BASE config (defer shart) -->
-  <script src="/config.js" defer></script>
-
+  <!-- ✅ LOGOUT (agar app.js qilmasa ham) -->
   <script>
-    // ✅ Auth check: config.js yuklangandan keyin ishlaydi
-    async function authCheck() {
-      window.API_BASE = window.API_BASE || "";
-      try {
-        const res = await fetch(window.API_BASE + "/api/me", { credentials: "include" });
-        if (!res.ok) return window.location.replace("login.html");
-      } catch (e) {
-        return window.location.replace("login.html");
-      }
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        try {
+          await fetch(window.API_BASE + "/api/logout", { method: "POST", credentials: "include" });
+        } catch {}
+        window.location.replace("login.html");
+      });
     }
-
-    // config.js defer bo‘lgani uchun DOMContentLoaded ichida chaqiramiz
-    document.addEventListener("DOMContentLoaded", authCheck);
   </script>
 
   <!-- ✅ CHANGE PASSWORD JS -->
@@ -176,8 +635,6 @@
 
     if (cpBtn) {
       cpBtn.addEventListener("click", async () => {
-        window.API_BASE = window.API_BASE || "http://127.0.0.1:3000";
-
         const oldPassword = document.getElementById("oldPass").value;
         const newPassword = document.getElementById("newPass").value;
 
@@ -205,8 +662,7 @@
 
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !data.ok) {
-            showCP("err", data.message || "Xato");
-            return;
+            return showCP("err", data.message || "Xato");
           }
 
           showCP("ok", data.message || "Parol yangilandi. Logout qilib yangi parol bilan kiring.");
